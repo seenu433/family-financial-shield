@@ -1,39 +1,65 @@
-# Copilot Instructions — Vibe Coding Starter
+# Copilot Instructions — Family Financial Shield
 
-> Purpose: Speed-run a tiny **web MVP** in under an hour. Keep scope minimal. Prefer plain React + Vite. Only add deps if necessary.
+> Purpose: Build a **Family Financial Assessment Tool** that helps parents evaluate their financial preparedness in case of income loss. Target: 3-minute user experience, 1-hour development time.
 
 ## Repo Context
-- React + Vite single-page scaffold
-- Objective: one clear user action (e.g., answer 5 questions, click-to-start mini-game, submit an email, display a simple chart)
-- Keep code small and readable. Avoid premature abstractions.
+
+- **Project**: Family Financial Shield - financial preparedness assessment tool
+- **Target Users**: Parents and caregivers concerned about family financial security
+- **Core Action**: Complete 5-question assessment → receive personalized financial protection checklist
+- **Domain**: Personal finance, life insurance needs analysis, emergency planning
+- Keep calculations simple but realistic. Focus on actionable recommendations over complex analysis.
 
 ## Guardrails
-- No heavy frameworks unless explicitly requested.
-- Minimize dependencies. If adding a lib, explain why in comments.
-- Prefer native fetch and simple state via `useState`.
-- Keep components flat. One file is fine until MVP works.
+
+- **No backend dependencies** - All calculations must run client-side
+- **Financial accuracy** - Use realistic formulas but keep them simple (e.g., life insurance = 10x income + education costs)
+- **Input validation** - Numbers only for financial fields, reasonable ranges (income $1K-$1M+)
+- **Mobile-first** - Parents often use phones for quick financial checks
+- **Progressive disclosure** - Show one question at a time with progress indicator
+- Single App.jsx component until functionality is proven, then split if needed
 
 ## Build Flow (ask the user step-by-step)
-1. **Confirm the MVP goal** in one sentence.
-2. **Sketch the UI** as simple JSX (form, button, list, results area).
-3. **Wire the core interaction** (event handlers, state).
-4. **Add one finishing touch** (basic validation, simple animation, or a tiny data mock).
-5. **Ship** (build & preview), then suggest next steps.
+
+1. **Set up the 5-question form** (income, expenses, dependents, current coverage, emergency fund)
+2. **Build calculation engine** (life insurance gap, emergency fund gap, financial health score)
+3. **Create results display** (traffic light status + 3-5 prioritized action items)
+4. **Add progress & validation** (question navigation, input validation, mobile responsiveness)
+5. **Test & polish** (edge cases, clear messaging, print-friendly results)
 
 ## Prompts to Use with Me (copy/paste)
-- "Given this idea: <idea>, propose a *one-hour MVP* with 3–5 steps and exactly one core user action."
-- "Generate the minimal JSX + state to implement that action. No extra files unless needed."
-- "Refactor my App.jsx to make the code clearer, without adding libraries."
-- "Create a tiny fake data source (an array or JSON) and show how to render it and filter it."
-- "Add a simple result screen summarizing what the user did, without routing."
-- "Suggest the smallest possible accessibility improvements for this UI."
-- "Write a 3–5 bullet README snippet telling someone how to run and use this MVP."
+
+**Financial Assessment Specific Prompts:**
+- "Create the 5-question financial assessment form with proper input validation"
+- "Build the calculation logic for life insurance needs and emergency fund gaps"
+- "Generate a results component with traffic light status (red/yellow/green) and action items"
+- "Add form navigation with progress indicator and back/next buttons"
+- "Create realistic financial scenarios for testing (single parent, dual income, retiree)"
+- "Implement client-side printing/saving of results without external dependencies"
+
+**General Development Prompts:**
+- "Refactor App.jsx to separate form logic from calculation logic"
+- "Add input validation for financial fields (currency formatting, reasonable ranges)"
+- "Make this mobile-responsive for parents checking on their phones"
+- "Write clear, jargon-free copy for financial recommendations"
 
 ## Quality Bar
-- Works locally with `npm run dev` and builds with `npm run build`.
-- No runtime errors in the console.
-- Keep the bundle minimal.
+
+**MVP Success Criteria:**
+- ✅ All 5 assessment questions collect valid input
+- ✅ Financial calculations produce reasonable results (no negative insurance needs)
+- ✅ Results display clear action items prioritized by impact
+- ✅ Form can be completed in under 3 minutes
+- ✅ Works on mobile devices (responsive design)
+- ✅ No runtime errors, builds successfully
+- ✅ Uses appropriate financial terminology but stays accessible
 
 ## Stretch (only after MVP)
-- Add routing (react-router-dom) if multiple views are essential.
-- Add a small chart or animation *only if* it clarifies the outcome.
+
+**Post-MVP Enhancements (only after core functionality works):**
+- Add "what-if" scenarios with sliders to adjust income/expenses
+- Implement local storage to save assessment data
+- Add visual progress bar for financial health score
+- Include educational tooltips explaining financial concepts
+- Create print-optimized CSS for results page
+- Add basic animations for form transitions and result reveals
