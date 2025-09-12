@@ -194,3 +194,19 @@ export const isFormReadyForCalculation = (formData) => {
   const validation = validateFormData(formData);
   return validation.isValid;
 };
+
+/**
+ * Validate and sanitize input (stub function for compatibility)
+ * @param {string} value - The input value to validate
+ * @returns {string} The sanitized value
+ */
+export const validateAndSanitizeInput = (value) => {
+  if (!value) return '';
+  
+  // Basic sanitization: remove non-numeric characters for financial inputs
+  if (typeof value === 'string') {
+    return value.replace(/[^\d.-]/g, '');
+  }
+  
+  return value.toString();
+};
