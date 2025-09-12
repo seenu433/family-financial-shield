@@ -13,6 +13,11 @@ export default function App() {
   })
   const [results, setResults] = useState(null)
   
+  // Assessment mode state
+  const [assessmentMode, setAssessmentMode] = useState('simple') // simple, detailed
+  const [detailedInstruments, setDetailedInstruments] = useState({}) // Track which instruments use detailed mode
+  const [skippedInstruments, setSkippedInstruments] = useState({}) // Track skipped instruments
+  
   // Home page interaction state
   const [flippedTiles, setFlippedTiles] = useState({})
   const [flippedAnalysisTiles, setFlippedAnalysisTiles] = useState({})
@@ -127,26 +132,26 @@ export default function App() {
       helpText: 'Non-retirement investment accounts for stocks, bonds, ETFs'
     },
     {
-      id: 'hsaAccounts',
-      question: 'How much do you have in Health Savings Account (HSA)?',
+      id: 'educationSavings',
+      question: 'How much do you have in 529 education savings plans?',
+      placeholder: '25000',
+      type: 'number',
+      label: '$',
+      pillar: 'benefits',
+      instrument: 'Savings & Investments',
+      nationalAverage: 'US Average: $16,383 (36% of families have 529 plans)',
+      helpText: 'Tax-advantaged savings plans for education expenses (529 plans, Coverdell ESAs)'
+    },
+    {
+      id: 'healthSavingsAccount',
+      question: 'How much do you have in Health Savings Accounts (HSA)?',
       placeholder: '8000',
       type: 'number',
       label: '$',
       pillar: 'benefits',
       instrument: 'Savings & Investments',
-      nationalAverage: 'US Average: $4,300 (28% of eligible employees contribute to HSA)',
-      helpText: 'Triple tax-advantaged account for healthcare expenses (requires high-deductible health plan)'
-    },
-    {
-      id: 'educationSavings529',
-      question: 'How much do you have in 529 Education Savings Plans?',
-      placeholder: '12000',
-      type: 'number',
-      label: '$',
-      pillar: 'benefits',
-      instrument: 'Savings & Investments',
-      nationalAverage: 'US Average: $25,664 (34% of families use 529 plans)',
-      helpText: 'Tax-advantaged savings for qualified education expenses'
+      nationalAverage: 'US Average: $4,300 (22% of Americans have HSAs)',
+      helpText: 'Triple tax-advantaged accounts for medical expenses (requires high-deductible health plan)'
     },
 
     // BENEFITS PILLAR (A) - Real Estate Instrument
@@ -406,6 +411,178 @@ export default function App() {
       helpText: 'Years until your youngest child becomes financially independent'
     }
   ]
+
+  // Simplified instrument configurations for easy data entry
+  const simpleInstruments = {
+    'Life Insurance': {
+      key: 'totalLifeInsurance',
+      question: 'What is your total life insurance coverage?',
+      placeholder: '350000',
+      helpText: 'Include all types: term, whole, and group life insurance from work',
+      nationalAverage: 'US Average: $178,000',
+      detailedFields: ['termLifeInsurance', 'wholeLifeInsurance', 'groupLifeInsurance']
+    },
+    'Retirement Accounts': {
+      key: 'totalRetirement',
+      question: 'What is your total retirement savings?',
+      placeholder: '150000',
+      helpText: 'Include 401(k), IRA, Roth accounts, and other retirement savings',
+      nationalAverage: 'US Average: $65,000',
+      detailedFields: ['traditional401k', 'roth401k', 'traditionalIRA', 'rothIRA']
+    },
+    'Savings & Investments': {
+      key: 'totalSavings',
+      question: 'What are your total savings and investments?',
+      placeholder: '50000',
+      helpText: 'Cash savings, investment accounts, CDs, bonds (non-retirement)',
+      nationalAverage: 'US Average: $41,600',
+      detailedFields: ['savingsAccounts', 'investmentAccounts', 'educationSavings', 'healthSavingsAccount']
+    },
+    'Real Estate': {
+      key: 'totalRealEstate',
+      question: 'What is your total real estate value?',
+      placeholder: '400000',
+      helpText: 'Current market value of your home and other real estate',
+      nationalAverage: 'US Average: $428,700',
+      detailedFields: ['homeValue']
+    },
+    'Social Security Survivor Benefits': {
+      key: 'totalIncome',
+      question: 'What is your annual household income?',
+      placeholder: '75000',
+      helpText: 'Combined income from all sources (used to estimate Social Security)',
+      nationalAverage: 'US Average: $70,784',
+      detailedFields: ['annualIncome']
+    },
+    'Mortgage Debt': {
+      key: 'totalMortgage',
+      question: 'What is your total mortgage debt?',
+      placeholder: '280000',
+      helpText: 'Primary mortgage plus any home equity loans or HELOCs',
+      nationalAverage: 'US Average: $236,443',
+      detailedFields: ['primaryMortgage', 'homeEquityLoans']
+    },
+    'Credit Card Debt': {
+      key: 'totalCreditCard',
+      question: 'What is your total credit card debt?',
+      placeholder: '8000',
+      helpText: 'Outstanding balances across all credit cards',
+      nationalAverage: 'US Average: $6,194',
+      detailedFields: ['creditCardDebt']
+    },
+    'Student Loans': {
+      key: 'totalStudentLoans',
+      question: 'What is your total student loan debt?',
+      placeholder: '35000',
+      helpText: 'Federal and private student loans combined',
+      nationalAverage: 'US Average: $37,000',
+      detailedFields: ['federalStudentLoans', 'privateStudentLoans']
+    },
+    'Auto Loans': {
+      key: 'totalAutoLoans',
+      question: 'How much do you owe on auto loans?',
+      placeholder: '18000',
+      helpText: 'Outstanding balances on car, truck, or motorcycle loans',
+      nationalAverage: 'US Average: $20,137',
+      detailedFields: ['autoLoans']
+    },
+    'Business & Medical Debt': {
+      key: 'totalBusinessMedicalDebt',
+      question: 'How much do you owe in personal loans and medical debt?',
+      placeholder: '5000',
+      helpText: 'Personal loans, medical bills, business debt, other unsecured debt',
+      nationalAverage: 'US Average: $6,194',
+      detailedFields: ['personalLoans']
+    },
+    'Housing Costs': {
+      key: 'totalHousingCosts',
+      question: 'What are your monthly housing costs?',
+      placeholder: '2500',
+      helpText: 'Rent/mortgage, property taxes, utilities, HOA fees, maintenance',
+      nationalAverage: 'US Average: $2,025/month',
+      detailedFields: ['housingCosts']
+    },
+    'Food & Essential Living': {
+      key: 'totalFoodExpenses',
+      question: 'What are your monthly food and grocery expenses?',
+      placeholder: '800',
+      helpText: 'Groceries, dining out, food delivery services',
+      nationalAverage: 'US Average: $779/month',
+      detailedFields: ['foodExpenses']
+    },
+    'Transportation Expenses': {
+      key: 'totalTransportationCosts',
+      question: 'What are your monthly transportation expenses?',
+      placeholder: '600',
+      helpText: 'Car payments, gas, insurance, maintenance, public transit',
+      nationalAverage: 'US Average: $813/month',
+      detailedFields: ['transportationCosts']
+    },
+    'Healthcare & Insurance': {
+      key: 'totalHealthcareCosts',
+      question: 'What are your monthly healthcare expenses?',
+      placeholder: '500',
+      helpText: 'Health insurance premiums, copays, medications, dental, vision',
+      nationalAverage: 'US Average: $456/month',
+      detailedFields: ['healthcareCosts']
+    },
+    'Education & Development': {
+      key: 'totalChildcareEducation',
+      question: 'What are your monthly childcare and education expenses?',
+      placeholder: '1200',
+      helpText: 'Childcare, preschool, school fees, tutoring, extracurriculars',
+      nationalAverage: 'US Average: $1,230/month',
+      detailedFields: ['childcareEducation']
+    },
+    'Document Preparation': {
+      key: 'totalDocumentPreparation',
+      question: 'How complete is your legal documentation (1-5 scale)?',
+      placeholder: '3',
+      helpText: 'Rate your completion: 1=None, 2=Some, 3=Basic, 4=Good, 5=Complete',
+      nationalAverage: 'US Average: 2.3 out of 5',
+      detailedFields: ['hasWill', 'hasTrust', 'hasPowerOfAttorney', 'hasHealthcareDirectives']
+    },
+    'Family Planning': {
+      key: 'totalFamilyPlanning',
+      question: 'How many dependents and years of protection needed?',
+      placeholder: '2',
+      helpText: 'Number of dependents (children under 18)',
+      nationalAverage: 'US Average: 1.94 children per family',
+      detailedFields: ['dependents', 'yearsToProtect']
+    },
+    'Income Tax': {
+      key: 'totalTaxRate',
+      question: 'What is your effective tax rate?',
+      placeholder: '22',
+      helpText: 'Your overall tax rate as a percentage (federal + state)',
+      nationalAverage: 'US Average: 13.3%',
+      detailedFields: ['marginalTaxRate']
+    },
+    'Legal & Administrative Expenses': {
+      key: 'totalLegalExpenses',
+      question: 'Estimated legal and administrative costs?',
+      placeholder: '15000',
+      helpText: 'Probate, legal fees, funeral costs, estate administration',
+      nationalAverage: 'US Average: $7,500-$15,000',
+      detailedFields: ['probateCosts', 'funeralCosts', 'legalFees', 'executorFees']
+    },
+    'Monthly Living Expenses': {
+      key: 'totalMonthlyExpenses',
+      question: 'What are your total monthly living expenses?',
+      placeholder: '5500',
+      helpText: 'Housing, food, utilities, insurance, transportation, all living costs',
+      nationalAverage: 'US Average: $5,101/month',
+      detailedFields: ['monthlyHousing', 'monthlyFood', 'monthlyTransportation', 'monthlyHealthcare', 'monthlyInsurance', 'monthlyOther']
+    },
+    'Documentation Assessment': {
+      key: 'totalDocumentation',
+      question: 'How complete is your legal documentation?',
+      placeholder: '3',
+      helpText: 'Rate 1-5: How well do you have wills, trusts, and directives in place?',
+      nationalAverage: 'US Average: 2.3 out of 5',
+      detailedFields: ['willStatus', 'trustStatus', 'powerOfAttorney', 'healthcareDirectives', 'beneficiaryDesignations']
+    }
+  }
 
   // Detailed pillar data with instruments
   const pillarData = {
@@ -668,88 +845,56 @@ export default function App() {
       pros: ['Triple tax advantage', 'No "use it or lose it"', 'Investment options for growth', 'Retirement healthcare planning'],
       cons: ['Requires high-deductible health plan', 'Limited to medical expenses before 65', 'Annual contribution limits'],
       bestFor: 'Anyone with a qualifying high-deductible health plan, especially those who can afford to pay medical expenses out-of-pocket and let HSA grow.'
+    },
+    '529 Plans': {
+      name: '529 Education Savings Plan',
+      description: 'Tax-advantaged savings plan designed to encourage saving for future education costs.',
+      howItWorks: 'Contribute after-tax dollars, money grows tax-free, withdrawals for qualified education expenses are tax-free. Can be used for K-12 tuition (up to $10,000/year) and college expenses.',
+      pros: ['Tax-free growth and withdrawals for education', 'High contribution limits', 'Can change beneficiaries', 'Some states offer tax deductions', 'Can be used for K-12 and college'],
+      cons: ['Limited to education expenses', '10% penalty on non-qualified withdrawals', 'Investment options limited to plan choices', 'May affect financial aid eligibility'],
+      bestFor: 'Parents or grandparents who want to save for children\'s education expenses with tax advantages and are comfortable with education-focused restrictions.'
     }
     // Add more products as needed
   }
 
-  // Enhanced financial calculations using instrument-level detail
+  // Enhanced financial calculations using instrument-level detail with simplified/detailed mode support
   const calculateFinancialNeeds = () => {
     // BENEFITS PILLAR (A) - Sum all protection sources
-    const lifeInsuranceTotal = (
-      parseFloat(formData.termLifeInsurance) || 0) +
-      (parseFloat(formData.wholeLifeInsurance) || 0) +
-      (parseFloat(formData.groupLifeInsurance) || 0
-    )
-    
-    const retirementAccountsTotal = (
-      parseFloat(formData.traditional401k) || 0) +
-      (parseFloat(formData.roth401k) || 0) +
-      (parseFloat(formData.traditionalIRA) || 0) +
-      (parseFloat(formData.rothIRA) || 0
-    )
-    
-    const savingsInvestmentsTotal = (
-      parseFloat(formData.savingsAccounts) || 0) +
-      (parseFloat(formData.investmentAccounts) || 0) +
-      (parseFloat(formData.hsaAccounts) || 0) +
-      (parseFloat(formData.educationSavings529) || 0
-    )
-    
-    const realEstateValue = parseFloat(formData.homeValue) || 0
-    const annualIncome = parseFloat(formData.annualIncome) || 0
+    const lifeInsuranceTotal = getInstrumentValue('Life Insurance')
+    const retirementAccountsTotal = getInstrumentValue('Retirement Accounts')
+    const savingsInvestmentsTotal = getInstrumentValue('Savings & Investments')
+    const realEstateValue = getInstrumentValue('Real Estate')
+    const annualIncome = getInstrumentValue('Social Security Survivor Benefits')
     
     // Total Benefits (A)
     const totalBenefits = lifeInsuranceTotal + retirementAccountsTotal + savingsInvestmentsTotal + realEstateValue
     
     // DEBTS PILLAR (B) - Sum all outstanding obligations
-    const mortgageDebtTotal = (
-      parseFloat(formData.primaryMortgage) || 0) +
-      (parseFloat(formData.homeEquityLoans) || 0
-    )
-    
-    const creditCardDebt = parseFloat(formData.creditCardDebt) || 0
-    
-    const studentLoansTotal = (
-      parseFloat(formData.federalStudentLoans) || 0) +
-      (parseFloat(formData.privateStudentLoans) || 0
-    )
-    
-    const autoLoans = parseFloat(formData.autoLoans) || 0
-    const personalLoans = parseFloat(formData.personalLoans) || 0
+    const mortgageDebtTotal = getInstrumentValue('Mortgage Debt')
+    const creditCardDebt = getInstrumentValue('Credit Card Debt')
+    const studentLoansTotal = getInstrumentValue('Student Loans')
+    const otherDebtsTotal = getInstrumentValue('Other Debts')
     
     // Total Debts (B)
-    const totalDebts = mortgageDebtTotal + creditCardDebt + studentLoansTotal + autoLoans + personalLoans
+    const totalDebts = mortgageDebtTotal + creditCardDebt + studentLoansTotal + otherDebtsTotal
     
-    // TAX IMPLICATIONS (C) - Tax impact on different account types
-    const traditionalAccountTaxImpact = (
-      (parseFloat(formData.traditional401k) || 0) +
-      (parseFloat(formData.traditionalIRA) || 0)
-    ) * 0.25 // Assume 25% tax rate on traditional accounts
-    
+    // TAX IMPLICATIONS (C) - Tax impact based on simplified approach
+    const taxRate = getInstrumentValue('Income Tax') / 100 || 0.22 // Default to 22% if not provided
+    const traditionalAccountTaxImpact = retirementAccountsTotal * 0.6 * taxRate // Assume 60% is traditional
     const realEstateTaxImpact = realEstateValue * 0.06 // 6% selling costs
-    const taxImplications = traditionalAccountTaxImpact + realEstateTaxImpact
+    const legalExpenses = getInstrumentValue('Legal & Administrative Expenses')
+    const taxImplications = traditionalAccountTaxImpact + realEstateTaxImpact + legalExpenses
     
     // MONTHLY EXPENSES (D) - Sum all living costs
-    const monthlyExpensesTotal = (
-      parseFloat(formData.housingCosts) || 0) +
-      (parseFloat(formData.foodExpenses) || 0) +
-      (parseFloat(formData.transportationCosts) || 0) +
-      (parseFloat(formData.healthcareCosts) || 0) +
-      (parseFloat(formData.childcareEducation) || 0
-    )
+    const monthlyExpensesTotal = getInstrumentValue('Monthly Living Expenses')
     
-    // PLANNING VARIABLES
+    // PLANNING VARIABLES - Use existing formData or defaults
     const dependents = parseFloat(formData.dependents) || 0
     const yearsToProtect = parseFloat(formData.yearsToProtect) || 18
     
-    // LEGAL PLANNING SCORE
-    const legalDocuments = [
-      formData.hasWill === 'yes' ? 25 : formData.hasWill === 'outdated' ? 15 : 0,
-      formData.hasTrust === 'yes' ? 25 : 0,
-      formData.hasPowerOfAttorney === 'yes' ? 25 : 0,
-      formData.hasHealthcareDirectives === 'yes' ? 25 : 0
-    ]
-    const legalScore = legalDocuments.reduce((sum, score) => sum + score, 0)
+    // LEGAL PLANNING SCORE - Use documentation assessment
+    const documentationScore = getInstrumentValue('Documentation Assessment')
+    const legalScore = Math.min(100, documentationScore * 20) // Convert 1-5 scale to 0-100
     
     // ENHANCED CALCULATIONS
     
@@ -865,7 +1010,7 @@ export default function App() {
     
     // Children-specific recommendations
     if (dependents > 0) {
-      const educationSavings = (parseFloat(formData.educationSavings529) || 0)
+      const educationSavings = (parseFloat(formData.educationSavings) || 0)
       const targetEducation = dependents * 100000 // $100k per child estimate
       
       if (educationSavings < targetEducation * 0.5) {
@@ -874,20 +1019,6 @@ export default function App() {
       }
     }
     
-    // HSA recommendations
-    const hsaBalance = (parseFloat(formData.hsaAccounts) || 0)
-    const annualHealthcareCosts = (parseFloat(formData.healthcareCosts) || 0) * 12
-    const hsaMaxContribution = 4300 // 2024 individual HSA contribution limit
-    
-    if (hsaBalance < annualHealthcareCosts * 2) {
-      const recommendedHSA = Math.min(hsaMaxContribution, annualHealthcareCosts * 0.5)
-      actionItems.push(`🏥 Maximize HSA contributions: $${recommendedHSA.toLocaleString()}/year (triple tax advantage + investment growth potential after age 65)`)
-    }
-    
-    if (hsaBalance > 10000) {
-      actionItems.push('💊 Consider investing HSA funds beyond immediate healthcare needs - HSA becomes retirement account after 65')
-    }
-
     // Income replacement analysis
     const monthlyIncome = annualIncome / 12
     const incomeReplacementNeeded = monthlyIncome * 0.7 // 70% replacement ratio
@@ -906,7 +1037,7 @@ export default function App() {
         actionItems.push('💎 Consider tax-loss harvesting and asset allocation optimization in taxable accounts')
       }
       
-      if (dependents > 0 && (parseFloat(formData.educationSavings529) || 0) > 50000) {
+      if (dependents > 0 && (parseFloat(formData.educationSavings) || 0) > 50000) {
         actionItems.push('🎓 Well-funded education savings - consider age-based investment allocation adjustments')
       }
     }
@@ -972,6 +1103,200 @@ export default function App() {
   const getCurrentInstrumentData = () => {
     const instruments = getInstruments()
     return instruments[currentInstrument] || null
+  }
+
+  // Helper functions for simplified assessment mode
+  const isInstrumentInDetailedMode = (instrumentName) => {
+    return detailedInstruments[instrumentName] === true
+  }
+
+  const isInstrumentSkipped = (instrumentName) => {
+    return skippedInstruments[instrumentName] === true
+  }
+
+  const toggleInstrumentMode = (instrumentName) => {
+    setDetailedInstruments(prev => ({
+      ...prev,
+      [instrumentName]: !prev[instrumentName]
+    }))
+  }
+
+  const skipInstrument = (instrumentName) => {
+    const simpleConfig = simpleInstruments[instrumentName]
+    if (simpleConfig) {
+      // Clear any existing values for this instrument
+      const updatedFormData = { ...formData }
+      
+      // Clear simple field
+      delete updatedFormData[simpleConfig.key]
+      
+      // Clear all detailed fields
+      simpleConfig.detailedFields.forEach(field => {
+        delete updatedFormData[field]
+      })
+      
+      setFormData(updatedFormData)
+      
+      // Mark as skipped
+      setSkippedInstruments(prev => ({
+        ...prev,
+        [instrumentName]: true
+      }))
+    }
+  }
+
+  const unskipInstrument = (instrumentName) => {
+    setSkippedInstruments(prev => ({
+      ...prev,
+      [instrumentName]: false
+    }))
+  }
+
+  const syncSimpleToDetailed = (instrumentName, simpleValue) => {
+    const simpleConfig = simpleInstruments[instrumentName]
+    if (!simpleConfig || !simpleValue) return
+
+    const updatedFormData = { ...formData }
+    const numericValue = parseFloat(simpleValue) || 0
+    
+    // Distribute the simple value across detailed fields based on typical patterns
+    if (instrumentName === 'Life Insurance') {
+      // Assume 70% term, 20% group, 10% whole life
+      updatedFormData.termLifeInsurance = Math.round(numericValue * 0.7).toString()
+      updatedFormData.groupLifeInsurance = Math.round(numericValue * 0.2).toString()
+      updatedFormData.wholeLifeInsurance = Math.round(numericValue * 0.1).toString()
+    } else if (instrumentName === 'Retirement Accounts') {
+      // Assume 60% traditional 401k, 25% Roth 401k, 10% traditional IRA, 5% Roth IRA
+      updatedFormData.traditional401k = Math.round(numericValue * 0.6).toString()
+      updatedFormData.roth401k = Math.round(numericValue * 0.25).toString()
+      updatedFormData.traditionalIRA = Math.round(numericValue * 0.1).toString()
+      updatedFormData.rothIRA = Math.round(numericValue * 0.05).toString()
+    } else if (instrumentName === 'Savings & Investments') {
+      // Assume 45% savings, 30% investments, 15% education savings, 10% HSA
+      updatedFormData.savingsAccounts = Math.round(numericValue * 0.45).toString()
+      updatedFormData.investmentAccounts = Math.round(numericValue * 0.30).toString()
+      updatedFormData.educationSavings = Math.round(numericValue * 0.15).toString()
+      updatedFormData.healthSavingsAccount = Math.round(numericValue * 0.10).toString()
+    } else if (instrumentName === 'Mortgage Debt') {
+      // Assume 90% primary mortgage, 10% home equity
+      updatedFormData.primaryMortgage = Math.round(numericValue * 0.9).toString()
+      updatedFormData.homeEquityLoans = Math.round(numericValue * 0.1).toString()
+    } else if (instrumentName === 'Student Loans') {
+      // Assume 80% federal, 20% private
+      updatedFormData.federalStudentLoans = Math.round(numericValue * 0.8).toString()
+      updatedFormData.privateStudentLoans = Math.round(numericValue * 0.2).toString()
+    } else if (instrumentName === 'Document Preparation') {
+      // For document preparation, map score to completion level
+      const score = Math.min(5, Math.max(1, Math.round(numericValue)))
+      if (score >= 4) {
+        updatedFormData.hasWill = 'yes'
+        updatedFormData.hasTrust = 'yes'
+        updatedFormData.hasPowerOfAttorney = 'yes'
+        updatedFormData.hasHealthcareDirectives = 'yes'
+      } else if (score >= 3) {
+        updatedFormData.hasWill = 'yes'
+        updatedFormData.hasTrust = 'no'
+        updatedFormData.hasPowerOfAttorney = 'yes'
+        updatedFormData.hasHealthcareDirectives = 'yes'
+      } else if (score >= 2) {
+        updatedFormData.hasWill = 'outdated'
+        updatedFormData.hasTrust = 'no'
+        updatedFormData.hasPowerOfAttorney = 'no'
+        updatedFormData.hasHealthcareDirectives = 'yes'
+      } else {
+        updatedFormData.hasWill = 'no'
+        updatedFormData.hasTrust = 'no'
+        updatedFormData.hasPowerOfAttorney = 'no'
+        updatedFormData.hasHealthcareDirectives = 'no'
+      }
+    } else if (instrumentName === 'Family Planning') {
+      // For family planning, use the number as dependents count and estimate years
+      updatedFormData.dependents = Math.round(numericValue).toString()
+      // Estimate years based on dependents (assume youngest is 3 years old, needs 15 more years)
+      updatedFormData.yearsToProtect = '15'
+    } else {
+      // For single-field instruments, just map directly
+      simpleConfig.detailedFields.forEach(field => {
+        updatedFormData[field] = simpleValue
+      })
+    }
+
+    setFormData(updatedFormData)
+  }
+
+  const syncDetailedToSimple = (instrumentName) => {
+    const simpleConfig = simpleInstruments[instrumentName]
+    if (!simpleConfig) return
+
+    let total = 0
+
+    if (instrumentName === 'Document Preparation') {
+      // Calculate completion score for documents (1-5 scale)
+      let score = 1
+      const hasWill = formData.hasWill
+      const hasTrust = formData.hasTrust === 'yes'
+      const hasPOA = formData.hasPowerOfAttorney === 'yes'
+      const hasDirectives = formData.hasHealthcareDirectives === 'yes'
+      
+      if (hasWill === 'yes') score += 1
+      if (hasTrust) score += 1
+      if (hasPOA) score += 1
+      if (hasDirectives) score += 1
+      
+      total = Math.min(5, score)
+    } else if (instrumentName === 'Family Planning') {
+      // For family planning, just use dependents count
+      total = parseFloat(formData.dependents) || 0
+    } else {
+      // Sum up all detailed fields
+      total = simpleConfig.detailedFields.reduce((sum, field) => {
+        return sum + (parseFloat(formData[field]) || 0)
+      }, 0)
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      [simpleConfig.key]: total.toString()
+    }))
+  }
+
+  const getInstrumentValue = (instrumentName) => {
+    if (isInstrumentSkipped(instrumentName)) {
+      return 0
+    }
+
+    const simpleConfig = simpleInstruments[instrumentName]
+    if (!simpleConfig) return 0
+
+    if (isInstrumentInDetailedMode(instrumentName)) {
+      // For detailed mode, sum or calculate from detailed fields
+      if (instrumentName === 'Document Preparation') {
+        // Calculate completion score for documents (1-5 scale)
+        let score = 1
+        const hasWill = formData.hasWill
+        const hasTrust = formData.hasTrust === 'yes'
+        const hasPOA = formData.hasPowerOfAttorney === 'yes'
+        const hasDirectives = formData.hasHealthcareDirectives === 'yes'
+        
+        if (hasWill === 'yes') score += 1
+        if (hasTrust) score += 1
+        if (hasPOA) score += 1
+        if (hasDirectives) score += 1
+        
+        return Math.min(5, score)
+      } else if (instrumentName === 'Family Planning') {
+        // For family planning, just use dependents count
+        return parseFloat(formData.dependents) || 0
+      } else {
+        // Sum detailed fields
+        return simpleConfig.detailedFields.reduce((sum, field) => {
+          return sum + (parseFloat(formData[field]) || 0)
+        }, 0)
+      }
+    } else {
+      // Use simple field
+      return parseFloat(formData[simpleConfig.key]) || 0
+    }
   }
 
   // Calculate completion percentage for current instrument
@@ -1062,85 +1387,6 @@ export default function App() {
     }))
   }
 
-  // Generate comprehensive summary analysis
-  const generateSummaryAnalysis = (results) => {
-    const { overallScore, status, benefitsScore, debtScore, taxScore, emergencyScore, legalScore } = results
-    const totalAssets = results.currentProtection
-    const totalDebts = results.totalDebts
-    const monthlyIncome = (parseFloat(formData.annualIncome) || 0) / 12
-    const monthlyExpenses = results.monthlyExpensesTotal
-    const dependents = parseFloat(formData.dependents) || 0
-    
-    let analysis = ""
-    let strengths = []
-    let concerns = []
-    let priority = ""
-    
-    // Overall status interpretation
-    if (overallScore >= 80) {
-      analysis = `Excellent financial protection! Your family is well-positioned to weather financial storms. With ${Math.round(overallScore)}% protection coverage, you've built a strong financial foundation that would support your family for ${parseFloat(formData.yearsToProtect) || 18} years if needed.`
-      priority = "Focus on optimization and tax-efficient strategies."
-    } else if (overallScore >= 60) {
-      analysis = `Good financial foundation with room for improvement. Your ${Math.round(overallScore)}% protection score indicates solid planning, but there are important gaps to address to fully secure your family's financial future.`
-      priority = "Address the highest-impact gaps first, particularly emergency fund and life insurance."
-    } else if (overallScore >= 40) {
-      analysis = `Moderate financial protection with significant gaps. Your ${Math.round(overallScore)}% protection score suggests you've started planning, but your family faces substantial financial risk if income is lost.`
-      priority = "Focus immediately on emergency fund and basic life insurance coverage."
-    } else {
-      analysis = `Critical financial protection gaps exist. With only ${Math.round(overallScore)}% protection, your family would face severe financial hardship if your income were lost. Immediate action is essential.`
-      priority = "Start with basic emergency fund and term life insurance as top priorities."
-    }
-    
-    // Analyze strengths
-    if (benefitsScore >= 70) strengths.push(`Strong asset base ($${totalAssets.toLocaleString()})`)
-    if (debtScore >= 70) strengths.push("Well-managed debt levels")
-    if (emergencyScore >= 70) strengths.push("Adequate emergency savings")
-    if (legalScore >= 70) strengths.push("Good legal documentation")
-    if (monthlyIncome > 0 && monthlyExpenses / monthlyIncome < 0.8) strengths.push("Reasonable spending relative to income")
-    
-    // Analyze concerns
-    if (benefitsScore < 50) concerns.push("Insufficient life insurance and savings")
-    if (debtScore < 50) concerns.push("High debt burden relative to assets")
-    if (emergencyScore < 50) concerns.push("Inadequate emergency fund")
-    if (legalScore < 50) concerns.push("Missing essential legal documents")
-    if (results.protectionGap > totalAssets * 0.5) concerns.push("Large protection gap vs. current assets")
-    
-    // Financial ratio analysis
-    const debtToAssetRatio = totalAssets > 0 ? (totalDebts / totalAssets) : 0
-    const expenseToIncomeRatio = monthlyIncome > 0 ? (monthlyExpenses / monthlyIncome) : 0
-    
-    let ratioAnalysis = ""
-    if (debtToAssetRatio > 0.8) {
-      ratioAnalysis += `Your debt represents ${Math.round(debtToAssetRatio * 100)}% of your assets - this is high and limits financial flexibility. `
-    } else if (debtToAssetRatio > 0.5) {
-      ratioAnalysis += `Your debt-to-asset ratio of ${Math.round(debtToAssetRatio * 100)}% is manageable but could be improved. `
-    }
-    
-    if (expenseToIncomeRatio > 0.9) {
-      ratioAnalysis += `Your expenses consume ${Math.round(expenseToIncomeRatio * 100)}% of income, leaving little room for savings or emergencies.`
-    } else if (expenseToIncomeRatio > 0.8) {
-      ratioAnalysis += `Your expenses are ${Math.round(expenseToIncomeRatio * 100)}% of income - consider reducing to build more financial cushion.`
-    } else if (expenseToIncomeRatio < 0.7) {
-      ratioAnalysis += `Great spending discipline! Your expenses are only ${Math.round(expenseToIncomeRatio * 100)}% of income, creating room for savings.`
-    }
-    
-    return {
-      mainAnalysis: analysis,
-      strengths: strengths,
-      concerns: concerns,
-      priority: priority,
-      ratioAnalysis: ratioAnalysis,
-      keyNumbers: {
-        totalAssets: totalAssets,
-        totalDebts: totalDebts,
-        netWorth: totalAssets - totalDebts,
-        monthlyIncome: monthlyIncome,
-        monthlyExpenses: monthlyExpenses,
-        protectionGap: results.protectionGap
-      }
-    }
-  }
-
   // Get pillar percentage explanations
   const getPillarExplanation = (pillarId, results) => {
     switch (pillarId) {
@@ -1151,7 +1397,7 @@ export default function App() {
           breakdown: [
             `Life Insurance: $${(parseFloat(formData.termLifeInsurance) || 0) + (parseFloat(formData.wholeLifeInsurance) || 0) + (parseFloat(formData.groupLifeInsurance) || 0)}`,
             `Retirement Accounts: $${(parseFloat(formData.traditional401k) || 0) + (parseFloat(formData.roth401k) || 0) + (parseFloat(formData.traditionalIRA) || 0) + (parseFloat(formData.rothIRA) || 0)}`,
-            `Savings & Investments: $${(parseFloat(formData.savingsAccounts) || 0) + (parseFloat(formData.investmentAccounts) || 0) + (parseFloat(formData.hsaAccounts) || 0) + (parseFloat(formData.educationSavings529) || 0)}`,
+            `Savings & Investments: $${(parseFloat(formData.savingsAccounts) || 0) + (parseFloat(formData.investmentAccounts) || 0)}`,
             `Real Estate Value: $${parseFloat(formData.homeValue) || 0}`
           ],
           explanation: 'This score measures how well your current assets would protect your family. Higher scores mean better protection coverage.'
@@ -1288,13 +1534,27 @@ export default function App() {
   // Use national averages for all questions in current instrument
   const useAllNationalAverages = () => {
     const instrumentData = getCurrentInstrumentData()
-    if (instrumentData) {
+    if (!instrumentData) return
+    
+    const instrumentName = instrumentData.name
+    const simpleConfig = simpleInstruments[instrumentName]
+    
+    if (isInstrumentInDetailedMode(instrumentName)) {
+      // In detailed mode, fill all individual questions
       instrumentData.questions.forEach(question => {
         if (question.nationalAverage) {
           const value = extractNationalAverageValue(question.nationalAverage)
           handleInputChange(question.id, value.toString())
         }
       })
+      // Sync to simple field
+      setTimeout(() => syncDetailedToSimple(instrumentName), 100)
+    } else {
+      // In simple mode, fill the simple field with national average
+      if (simpleConfig && simpleConfig.nationalAverage) {
+        const value = extractNationalAverageValue(simpleConfig.nationalAverage)
+        handleInputChange(simpleConfig.key, value.toString())
+      }
     }
   }
 
@@ -1320,7 +1580,24 @@ export default function App() {
     const instrumentData = getCurrentInstrumentData()
     if (!instrumentData) return false
     
-    return instrumentData.questions.every(q => formData[q.id])
+    const instrumentName = instrumentData.name
+    
+    // If skipped, it's considered complete
+    if (isInstrumentSkipped(instrumentName)) {
+      return true
+    }
+    
+    // Check if instrument has value based on current mode
+    const simpleConfig = simpleInstruments[instrumentName]
+    if (!simpleConfig) return false
+    
+    if (isInstrumentInDetailedMode(instrumentName)) {
+      // In detailed mode, check if at least one detailed field has a value
+      return instrumentData.questions.some(q => formData[q.id])
+    } else {
+      // In simple mode, check if the simple field has a value
+      return !!formData[simpleConfig.key]
+    }
   }
 
   const handleCancelAssessment = () => {
@@ -1335,6 +1612,8 @@ export default function App() {
       setCurrentInstrument(0)
       setCurrentStep('landing')
       setResults(null)
+      setDetailedInstruments({})
+      setSkippedInstruments({})
     }
   }
 
@@ -1354,6 +1633,8 @@ export default function App() {
       emergencyFund: ''
     })
     setResults(null)
+    setDetailedInstruments({})
+    setSkippedInstruments({})
   }
 
   // Tile interaction handlers
@@ -1491,35 +1772,9 @@ export default function App() {
   }
 
   const printResults = () => {
-    // Enhanced function to clean text for PDF compatibility
-    const cleanTextForPDF = (text) => {
-      if (!text) return '';
-      
-      return text
-        // First handle the þ character specifically
-        .replace(/þ/g, '')
-        // Remove all emojis and special symbols - comprehensive ranges
-        .replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]/gu, '')
-        // Additional emoji ranges
-        .replace(/[\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, '')
-        // Remove shield emoji specifically (🛡️)
-        .replace(/🛡️?/g, '')
-        // Remove other problematic Unicode characters
-        .replace(/[\u{2000}-\u{206F}]|[\u{2E00}-\u{2E7F}]|[\u{3000}-\u{303F}]/gu, ' ')
-        // Remove variation selectors that can cause issues
-        .replace(/[\u{FE00}-\u{FE0F}]/gu, '')
-        // Replace bullet points and special characters
-        .replace(/[•·▪▫◦‣⁃]/g, '-')
-        // Replace smart quotes with regular quotes
-        .replace(/[""]/g, '"')
-        .replace(/['']/g, "'")
-        // Replace em/en dashes with regular hyphens
-        .replace(/[–—]/g, '-')
-        // Fix broken spacing by normalizing whitespace
-        .replace(/\s+/g, ' ')
-        // Remove any remaining non-ASCII characters that could cause issues
-        .replace(/[^\x00-\x7F]/g, '')
-        .trim();
+    // Function to remove emojis for PDF compatibility
+    const removeEmojis = (text) => {
+      return text.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
     };
 
     // Generate PDF using jsPDF
@@ -1536,23 +1791,21 @@ export default function App() {
           author: 'Financial Assessment Tool'
         });
         
-        // Title and header with proper spacing
-        doc.setFontSize(22);
-        doc.setFont(undefined, 'bold');
+        // Title and header
+        doc.setFontSize(20);
         doc.setTextColor(0, 123, 255); // Blue color
-        doc.text('Family Financial Shield', 20, 25);
+        doc.text('Family Financial Shield', 20, 20);
         
         doc.setFontSize(16);
-        doc.setFont(undefined, 'normal');
         doc.setTextColor(0, 0, 0); // Black color
-        doc.text('Your Family Financial Protection Assessment', 20, 40);
+        doc.text('Your Family Financial Protection Assessment', 20, 35);
         
         doc.setFontSize(10);
         doc.setTextColor(102, 102, 102); // Gray color
-        doc.text(`Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 20, 50);
+        doc.text(`Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 20, 45);
         
         // Status Badge
-        let yPosition = 65;
+        let yPosition = 60;
         doc.setFontSize(14);
         doc.setTextColor(0, 0, 0);
         const statusColor = results?.status === 'green' ? [40, 167, 69] : results?.status === 'yellow' ? [255, 193, 7] : [220, 53, 69];
@@ -1616,134 +1869,34 @@ export default function App() {
           doc.text(item[0], 20, yPos);
           doc.text(item[1], 120, yPos);
         });
-
-        // Summary Analysis Section
+        
+        // Action Items
         yPosition += 50;
         doc.setFontSize(14);
-        doc.text('Financial Health Summary', 20, yPosition);
-        
-        yPosition += 10;
-        doc.setFontSize(10);
-        
-        // Generate summary for PDF
-        const summary = generateSummaryAnalysis(results);
-        
-        // Main analysis paragraph
-        const mainAnalysisLines = doc.splitTextToSize(cleanTextForPDF(summary.mainAnalysis), 170);
-        mainAnalysisLines.forEach((line, index) => {
-          doc.text(line, 20, yPosition + (index * 6));
-        });
-        yPosition += (mainAnalysisLines.length * 6) + 10;
-        
-        // Check for page break
-        if (yPosition > 240) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        
-        // Strengths section
-        if (summary.strengths.length > 0) {
-          doc.setFont(undefined, 'bold');
-          doc.text('Financial Strengths:', 20, yPosition);
-          doc.setFont(undefined, 'normal');
-          yPosition += 8;
-          
-          summary.strengths.forEach((strength, index) => {
-            const strengthLines = doc.splitTextToSize(`• ${cleanTextForPDF(strength)}`, 170);
-            strengthLines.forEach((line, lineIndex) => {
-              doc.text(line, 25, yPosition + (lineIndex * 5));
-            });
-            yPosition += (strengthLines.length * 5) + 2;
-          });
-          yPosition += 5;
-        }
-        
-        // Check for page break
-        if (yPosition > 240) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        
-        // Concerns section
-        if (summary.concerns.length > 0) {
-          doc.setFont(undefined, 'bold');
-          doc.text('Areas of Concern:', 20, yPosition);
-          doc.setFont(undefined, 'normal');
-          yPosition += 8;
-          
-          summary.concerns.forEach((concern, index) => {
-            const concernLines = doc.splitTextToSize(`• ${cleanTextForPDF(concern)}`, 170);
-            concernLines.forEach((line, lineIndex) => {
-              doc.text(line, 25, yPosition + (lineIndex * 5));
-            });
-            yPosition += (concernLines.length * 5) + 2;
-          });
-          yPosition += 5;
-        }
-        
-        // Check for page break
-        if (yPosition > 240) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        
-        // Ratio analysis
-        if (summary.ratioAnalysis) {
-          doc.setFont(undefined, 'bold');
-          doc.text('Financial Ratio Analysis:', 20, yPosition);
-          doc.setFont(undefined, 'normal');
-          yPosition += 8;
-          
-          const ratioLines = doc.splitTextToSize(cleanTextForPDF(summary.ratioAnalysis), 170);
-          ratioLines.forEach((line, index) => {
-            doc.text(line, 20, yPosition + (index * 5));
-          });
-          yPosition += (ratioLines.length * 5) + 8;
-        }
-        
-        // Priority focus
-        doc.setFont(undefined, 'bold');
-        doc.text('Priority Focus:', 20, yPosition);
-        doc.setFont(undefined, 'normal');
-        yPosition += 8;
-        
-        const priorityLines = doc.splitTextToSize(cleanTextForPDF(summary.priority), 170);
-        priorityLines.forEach((line, index) => {
-          doc.text(line, 20, yPosition + (index * 5));
-        });
-        yPosition += (priorityLines.length * 5) + 15;
-
-        // Action Items
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'bold');
         doc.text('Prioritized Action Items', 20, yPosition);
         
         yPosition += 10;
         doc.setFontSize(10);
-        doc.setFont(undefined, 'normal');
+        
+        let currentYPosition = yPosition + 10;
         
         results?.actionItems?.slice(0, 8).forEach((item, index) => {
-          const yPos = yPosition + (index * 12);
-          const cleanItem = cleanTextForPDF(item);
+          const cleanItem = removeEmojis(item);
           
           // Check if we need a new page
-          if (yPos > 270) {
+          if (currentYPosition > 270) {
             doc.addPage();
-            yPosition = 20;
-            const newYPos = yPosition + (index * 12);
-            
-            // Wrap long text
-            const lines = doc.splitTextToSize(`${index + 1}. ${cleanItem}`, 170);
-            lines.forEach((line, lineIndex) => {
-              doc.text(line, 20, newYPos + (lineIndex * 6));
-            });
-          } else {
-            // Wrap long text
-            const lines = doc.splitTextToSize(`${index + 1}. ${cleanItem}`, 170);
-            lines.forEach((line, lineIndex) => {
-              doc.text(line, 20, yPos + (lineIndex * 6));
-            });
+            currentYPosition = 20;
           }
+          
+          // Wrap long text
+          const lines = doc.splitTextToSize(`${index + 1}. ${cleanItem}`, 170);
+          lines.forEach((line, lineIndex) => {
+            doc.text(line, 20, currentYPosition + (lineIndex * 6));
+          });
+          
+          // Update position for next item (account for wrapped lines)
+          currentYPosition += (lines.length * 6) + 6; // 6pt spacing between items
         });
         
         // Footer
@@ -1775,6 +1928,10 @@ export default function App() {
   
   const fallbackTextDownload = () => {
     // Function to remove emojis for better compatibility
+    const removeEmojis = (text) => {
+      return text.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
+    };
+
     // Fallback: Generate a text file with results
     const textContent = `
 FAMILY FINANCIAL SHIELD ASSESSMENT RESULTS
@@ -1796,7 +1953,7 @@ KEY FINANCIAL NUMBERS:
 • Emergency Fund Gap: $${(results?.emergencyGap || 0).toLocaleString()}
 
 PRIORITIZED ACTION ITEMS:
-${(results?.actionItems || []).map((item, index) => `${index + 1}. ${cleanTextForPDF(item)}`).join('\n')}
+${(results?.actionItems || []).map((item, index) => `${index + 1}. ${removeEmojis(item)}`).join('\n')}
 
 DISCLAIMER:
 This assessment is for educational purposes only and is not financial advice.
@@ -2085,16 +2242,6 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
       border: '1px solid #dee2e6',
       borderRadius: '4px',
       overflow: 'hidden'
-    },
-    instrumentHeader: {
-      padding: '10px',
-      backgroundColor: '#e9ecef',
-      cursor: 'pointer',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      fontSize: '14px',
-      fontWeight: 'bold'
     },
     instrumentName: {
       color: '#333'
@@ -2546,6 +2693,72 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
       marginTop: '8px',
       fontStyle: 'italic',
       lineHeight: '1.3'
+    },
+    // New styles for simplified assessment mode
+    instrumentCard: {
+      backgroundColor: 'white',
+      border: '1px solid #dee2e6',
+      borderRadius: '12px',
+      padding: '25px',
+      marginBottom: '25px',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+    },
+    instrumentHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: '20px',
+      flexWrap: 'wrap',
+      gap: '15px'
+    },
+    modeToggle: {
+      display: 'flex',
+      gap: '10px',
+      alignItems: 'center'
+    },
+    simpleView: {
+      backgroundColor: '#f8f9fa',
+      borderRadius: '8px',
+      padding: '20px'
+    },
+    simpleViewFooter: {
+      marginTop: '15px',
+      textAlign: 'center',
+      paddingTop: '15px',
+      borderTop: '1px solid #dee2e6'
+    },
+    detailedView: {
+      backgroundColor: '#ffffff',
+      borderRadius: '8px',
+      padding: '20px',
+      border: '1px solid #e9ecef'
+    },
+    detailedViewHeader: {
+      marginBottom: '20px',
+      paddingBottom: '15px',
+      borderBottom: '1px solid #dee2e6'
+    },
+    detailedSummary: {
+      marginTop: '20px',
+      padding: '15px',
+      backgroundColor: '#f8f9fa',
+      borderRadius: '6px',
+      border: '1px solid #dee2e6'
+    },
+    skippedState: {
+      backgroundColor: '#f8f9fa',
+      border: '2px dashed #6c757d',
+      borderRadius: '8px',
+      padding: '30px',
+      textAlign: 'center'
+    },
+    skippedMessage: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '15px',
+      maxWidth: '400px',
+      margin: '0 auto'
     }
   }
 
@@ -2565,7 +2778,7 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
       <div style={styles.container}>
         <div style={styles.header}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/logo.png" alt="Family Financial Shield Logo" style={styles.logo} />
+            <img src="./logo.png" alt="Family Financial Shield Logo" style={styles.logo} />
             <h1 style={styles.headerTitle}>Family Financial Shield</h1>
           </div>
         </div>
@@ -2725,6 +2938,10 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
     const instrumentData = getCurrentInstrumentData()
     const overallProgress = getOverallCompletion()
     const instrumentCompletion = instrumentData ? getInstrumentCompletion(instrumentData.questions) : 0
+    const instrumentName = instrumentData?.name
+    const isDetailed = isInstrumentInDetailedMode(instrumentName)
+    const isSkipped = isInstrumentSkipped(instrumentName)
+    const simpleConfig = simpleInstruments[instrumentName]
 
     if (!instrumentData) {
       return <div>Loading...</div>
@@ -2734,7 +2951,7 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
       <div style={styles.container}>
         <div style={styles.header}>
           <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-            <img src="/logo.png" alt="Family Financial Shield Logo" style={styles.logo} />
+            <img src="./logo.png" alt="Family Financial Shield Logo" style={styles.logo} />
             <h1 style={styles.headerTitle}>Family Financial Shield</h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -2763,7 +2980,7 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
         {/* Overall Progress Bar */}
         <div style={styles.progress}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <p style={{ margin: 0 }}>Instrument {currentInstrument + 1} of {instruments.length}: {instrumentData.name}</p>
+            <p style={{ margin: 0 }}>Section {currentInstrument + 1} of {instruments.length}: {instrumentData.name}</p>
             <button
               onClick={useAllNationalAverages}
               style={{
@@ -2790,7 +3007,7 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
             <div style={{ ...styles.progressFill, width: `${overallProgress}%` }}></div>
           </div>
           <p style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-            Overall Progress: {Math.round(overallProgress)}% • This Section: {Math.round(instrumentCompletion)}%
+            Overall Progress: {Math.round(overallProgress)}%
           </p>
         </div>
 
@@ -2807,125 +3024,288 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
           <span style={styles.instrumentBadge}>{instrumentData.name}</span>
         </div>
 
-        {/* Instrument Progress Visualization */}
-        <div style={styles.instrumentProgress}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#007bff' }}>
-            📋 {instrumentData.name}
-          </h3>
-          <div style={styles.progressBar}>
-            <div style={{ 
-              ...styles.progressFill, 
-              width: `${instrumentCompletion}%`,
-              backgroundColor: instrumentCompletion === 100 ? '#28a745' : '#007bff'
-            }}></div>
+        {/* Instrument Card */}
+        <div style={styles.instrumentCard}>
+          <div style={styles.instrumentHeader}>
+            <h3 style={{ margin: '0 0 10px 0', color: '#007bff' }}>
+              📋 {instrumentData.name}
+            </h3>
+            
+            {/* Assessment Mode Toggle */}
+            <div style={styles.modeToggle}>
+              <button
+                onClick={() => toggleInstrumentMode(instrumentName)}
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '14px',
+                  backgroundColor: isDetailed ? '#6c757d' : '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  marginRight: '10px',
+                  transition: 'background-color 0.2s'
+                }}
+                title={isDetailed ? 'Switch to simple view' : 'Switch to detailed view'}
+              >
+                {isDetailed ? '📝 Simple View' : '🔍 Detailed View'}
+              </button>
+              
+              <button
+                onClick={() => isSkipped ? unskipInstrument(instrumentName) : skipInstrument(instrumentName)}
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '14px',
+                  backgroundColor: isSkipped ? '#28a745' : '#ffc107',
+                  color: isSkipped ? 'white' : '#000',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                title={isSkipped ? 'Include this section' : 'Skip this section (defaults to $0)'}
+              >
+                {isSkipped ? '✅ Include' : '⏭️ Skip'}
+              </button>
+            </div>
           </div>
-          <p style={{ fontSize: '14px', color: '#666', margin: '5px 0 20px 0' }}>
-            {instrumentData.questions.filter(q => formData[q.id]).length} of {instrumentData.questions.length} questions completed
-          </p>
-        </div>
 
-        {/* All Questions for Current Instrument */}
-        <div style={styles.questionsContainer}>
-          {instrumentData.questions.map((question, index) => {
-            const isCompleted = !!formData[question.id]
-            return (
-              <div key={question.id} style={{
-                ...styles.questionCard,
-                borderLeft: isCompleted ? '4px solid #28a745' : '4px solid #dee2e6'
-              }}>
-                <div style={styles.questionHeader}>
-                  <div style={styles.questionNumber}>
-                    {isCompleted ? '✅' : `${index + 1}`}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <h4 style={styles.questionTitle}>{question.question}</h4>
-                    {/* National averages and help text */}
-                    {question.nationalAverage && (
-                      <div style={styles.nationalAverage}>
-                        📊 {question.nationalAverage}
-                        <button
-                          onClick={() => useNationalAverage(question.id)}
-                          style={{
-                            marginLeft: '10px',
-                            padding: '4px 8px',
-                            fontSize: '12px',
-                            backgroundColor: '#007bff',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.2s'
-                          }}
-                          onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
-                          onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
-                        >
-                          Use This Value
-                        </button>
-                      </div>
-                    )}
-                    {question.helpText && (
-                      <div style={styles.helpText}>
-                        💡 {question.helpText}
-                      </div>
-                    )}
-                  </div>
+          {/* Skip State */}
+          {isSkipped ? (
+            <div style={styles.skippedState}>
+              <div style={styles.skippedMessage}>
+                <span style={{ fontSize: '24px', marginRight: '10px' }}>⏭️</span>
+                <div>
+                  <h4 style={{ margin: '0 0 5px 0', color: '#6c757d' }}>Section Skipped</h4>
+                  <p style={{ margin: 0, color: '#6c757d' }}>
+                    This section will be counted as $0 in your assessment. 
+                    Click "Include" above to add values.
+                  </p>
                 </div>
-                
-                <div style={{ position: 'relative' }}>
-                  {question.type === 'select' ? (
-                    <select
-                      value={formData[question.id] || ''}
-                      onChange={(e) => handleInputChange(question.id, e.target.value)}
-                      style={{
-                        ...styles.select,
-                        backgroundColor: isCompleted ? '#f8f9fa' : 'white'
-                      }}
-                    >
-                      <option value="">Select an option...</option>
-                      {question.options.map((option, idx) => (
-                        <option key={idx} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <>
-                      {question.label && (
-                        <span style={{ 
-                          position: 'absolute', 
-                          left: '12px', 
-                          top: '22px', 
-                          color: '#666', 
-                          fontSize: '16px' 
-                        }}>
-                          {question.label}
-                        </span>
-                      )}
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Simple View */}
+              {!isDetailed && simpleConfig && (
+                <div style={styles.simpleView}>
+                  <div style={styles.questionCard}>
+                    <div style={styles.questionHeader}>
+                      <div style={styles.questionNumber}>💰</div>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={styles.questionTitle}>{simpleConfig.question}</h4>
+                        <div style={styles.nationalAverage}>
+                          📊 {simpleConfig.nationalAverage}
+                          <button
+                            onClick={() => {
+                              const avgValue = simpleConfig.nationalAverage.match(/[\d,]+/)?.[0]?.replace(/,/g, '') || simpleConfig.placeholder
+                              handleInputChange(simpleConfig.key, avgValue)
+                              if (isDetailed) {
+                                syncSimpleToDetailed(instrumentName, avgValue)
+                              }
+                            }}
+                            style={{
+                              marginLeft: '10px',
+                              padding: '4px 8px',
+                              fontSize: '12px',
+                              backgroundColor: '#007bff',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Use This Value
+                          </button>
+                        </div>
+                        <div style={styles.helpText}>
+                          💡 {simpleConfig.helpText}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div style={{ position: 'relative' }}>
+                      <span style={{ 
+                        position: 'absolute', 
+                        left: '12px', 
+                        top: '22px', 
+                        color: '#666', 
+                        fontSize: '16px' 
+                      }}>
+                        $
+                      </span>
                       <input
-                        type={question.type}
-                        placeholder={question.placeholder}
-                        value={formData[question.id] || ''}
-                        onChange={(e) => handleInputChange(question.id, e.target.value)}
+                        type="number"
+                        placeholder={simpleConfig.placeholder}
+                        value={formData[simpleConfig.key] || ''}
+                        onChange={(e) => {
+                          handleInputChange(simpleConfig.key, e.target.value)
+                          if (isDetailed) {
+                            syncSimpleToDetailed(instrumentName, e.target.value)
+                          }
+                        }}
                         style={{
                           ...styles.input,
-                          paddingLeft: question.label ? '30px' : '12px',
-                          backgroundColor: isCompleted ? '#f8f9fa' : 'white'
+                          paddingLeft: '30px',
+                          fontSize: '18px',
+                          fontWeight: 'bold'
                         }}
                         min="0"
                       />
-                    </>
-                  )}
-                </div>
+                    </div>
 
-                {/* Real-time validation feedback */}
-                {isCompleted && (
-                  <div style={styles.completionFeedback}>
-                    ✓ Complete
+                    {formData[simpleConfig.key] && (
+                      <div style={styles.completionFeedback}>
+                        ✓ Complete
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )
-          })}
+                  
+                  <div style={styles.simpleViewFooter}>
+                    <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>
+                      Need more control? Click "Detailed View" to break this down by specific accounts.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Detailed View */}
+              {isDetailed && (
+                <div style={styles.detailedView}>
+                  <div style={styles.detailedViewHeader}>
+                    <h4 style={{ margin: '0 0 15px 0', color: '#6c757d' }}>
+                      Detailed Breakdown
+                    </h4>
+                    <p style={{ fontSize: '14px', color: '#666', margin: '0 0 20px 0' }}>
+                      Enter values for each specific account or category below:
+                    </p>
+                  </div>
+
+                  {/* All Detailed Questions */}
+                  <div style={styles.questionsContainer}>
+                    {instrumentData.questions.map((question, index) => {
+                      const isCompleted = !!formData[question.id]
+                      return (
+                        <div key={question.id} style={{
+                          ...styles.questionCard,
+                          borderLeft: isCompleted ? '4px solid #28a745' : '4px solid #dee2e6'
+                        }}>
+                          <div style={styles.questionHeader}>
+                            <div style={styles.questionNumber}>
+                              {isCompleted ? '✅' : `${index + 1}`}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <h4 style={styles.questionTitle}>{question.question}</h4>
+                              {question.nationalAverage && (
+                                <div style={styles.nationalAverage}>
+                                  📊 {question.nationalAverage}
+                                  <button
+                                    onClick={() => useNationalAverage(question.id)}
+                                    style={{
+                                      marginLeft: '10px',
+                                      padding: '4px 8px',
+                                      fontSize: '12px',
+                                      backgroundColor: '#007bff',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    Use This Value
+                                  </button>
+                                </div>
+                              )}
+                              {question.helpText && (
+                                <div style={styles.helpText}>
+                                  💡 {question.helpText}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div style={{ position: 'relative' }}>
+                            {question.type === 'select' ? (
+                              <select
+                                value={formData[question.id] || ''}
+                                onChange={(e) => {
+                                  handleInputChange(question.id, e.target.value)
+                                  setTimeout(() => syncDetailedToSimple(instrumentName), 100)
+                                }}
+                                style={{
+                                  ...styles.select,
+                                  backgroundColor: isCompleted ? '#f8f9fa' : 'white'
+                                }}
+                              >
+                                <option value="">Select an option...</option>
+                                {question.options.map((option, idx) => (
+                                  <option key={idx} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <>
+                                {question.label && (
+                                  <span style={{ 
+                                    position: 'absolute', 
+                                    left: '12px', 
+                                    top: '22px', 
+                                    color: '#666', 
+                                    fontSize: '16px' 
+                                  }}>
+                                    {question.label}
+                                  </span>
+                                )}
+                                <input
+                                  type={question.type}
+                                  placeholder={question.placeholder}
+                                  value={formData[question.id] || ''}
+                                  onChange={(e) => {
+                                    handleInputChange(question.id, e.target.value)
+                                    setTimeout(() => syncDetailedToSimple(instrumentName), 100)
+                                  }}
+                                  style={{
+                                    ...styles.input,
+                                    paddingLeft: question.label ? '30px' : '12px',
+                                    backgroundColor: isCompleted ? '#f8f9fa' : 'white'
+                                  }}
+                                  min="0"
+                                />
+                              </>
+                            )}
+                          </div>
+
+                          {isCompleted && (
+                            <div style={styles.completionFeedback}>
+                              ✓ Complete
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Detailed View Summary */}
+                  {(() => {
+                    const totalValue = getInstrumentValue(instrumentName)
+                    return totalValue > 0 ? (
+                      <div style={styles.detailedSummary}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 'bold', color: '#007bff' }}>
+                            Total {instrumentName}:
+                          </span>
+                          <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#007bff' }}>
+                            ${totalValue.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    ) : null
+                  })()}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Navigation Buttons */}
@@ -2938,18 +3318,41 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
             ← Back
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {instrumentCompletion < 100 && (
-              <span style={{ fontSize: '14px', color: '#dc3545' }}>
-                Complete all questions to proceed
-              </span>
-            )}
+            {(() => {
+              // Check if current instrument is complete
+              const hasValue = !isSkipped && (
+                (isDetailed && instrumentData.questions.some(q => formData[q.id])) ||
+                (!isDetailed && simpleConfig && formData[simpleConfig.key])
+              )
+              
+              if (!hasValue && !isSkipped) {
+                return (
+                  <span style={{ fontSize: '14px', color: '#dc3545' }}>
+                    Enter a value or skip to proceed
+                  </span>
+                )
+              }
+              return null
+            })()}
             <button
               style={{
                 ...styles.button,
-                opacity: isCurrentInstrumentComplete() ? 1 : 0.6
+                opacity: (() => {
+                  const hasValue = !isSkipped && (
+                    (isDetailed && instrumentData.questions.some(q => formData[q.id])) ||
+                    (!isDetailed && simpleConfig && formData[simpleConfig.key])
+                  )
+                  return (hasValue || isSkipped) ? 1 : 0.6
+                })()
               }}
               onClick={handleNext}
-              disabled={!isCurrentInstrumentComplete()}
+              disabled={(() => {
+                const hasValue = !isSkipped && (
+                  (isDetailed && instrumentData.questions.some(q => formData[q.id])) ||
+                  (!isDetailed && simpleConfig && formData[simpleConfig.key])
+                )
+                return !(hasValue || isSkipped)
+              })()}
             >
               {currentInstrument === instruments.length - 1 ? 'Get Results' : 'Next Section →'}
             </button>
@@ -2965,7 +3368,7 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
       <div style={styles.container}>
         <div style={styles.header}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/logo.png" alt="Family Financial Shield Logo" style={styles.logo} />
+            <img src="./logo.png" alt="Family Financial Shield Logo" style={styles.logo} />
             <h1 style={styles.headerTitle}>Family Financial Shield</h1>
           </div>
         </div>
@@ -3378,76 +3781,6 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
             </div>
 
           </div>
-        </div>
-
-        {/* Summary Analysis Section */}
-        <div style={{ backgroundColor: '#ffffff', padding: '25px', borderRadius: '8px', margin: '25px 0', border: '2px solid #e9ecef', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ color: '#2c3e50', marginBottom: '20px', fontSize: '22px' }}>📊 Your Financial Health Summary</h3>
-          {(() => {
-            const summary = generateSummaryAnalysis(results)
-            return (
-              <>
-                <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', lineHeight: '1.6' }}>
-                  <p style={{ margin: 0, fontSize: '16px', color: '#2c3e50' }}>
-                    {summary.mainAnalysis}
-                  </p>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px' }}>
-                  {/* Strengths */}
-                  {summary.strengths.length > 0 && (
-                    <div style={{ padding: '15px', backgroundColor: '#d4edda', borderRadius: '6px', border: '1px solid #c3e6cb' }}>
-                      <h4 style={{ color: '#155724', margin: '0 0 10px 0', fontSize: '16px' }}>✅ Financial Strengths</h4>
-                      <ul style={{ margin: 0, paddingLeft: '20px', color: '#155724' }}>
-                        {summary.strengths.map((strength, idx) => (
-                          <li key={idx} style={{ marginBottom: '5px' }}>{strength}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Concerns */}
-                  {summary.concerns.length > 0 && (
-                    <div style={{ padding: '15px', backgroundColor: '#f8d7da', borderRadius: '6px', border: '1px solid #f5c6cb' }}>
-                      <h4 style={{ color: '#721c24', margin: '0 0 10px 0', fontSize: '16px' }}>⚠️ Areas of Concern</h4>
-                      <ul style={{ margin: 0, paddingLeft: '20px', color: '#721c24' }}>
-                        {summary.concerns.map((concern, idx) => (
-                          <li key={idx} style={{ marginBottom: '5px' }}>{concern}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-
-                {/* Key Financial Numbers */}
-                <div style={{ padding: '15px', backgroundColor: '#e9ecef', borderRadius: '6px', marginBottom: '15px' }}>
-                  <h4 style={{ color: '#495057', margin: '0 0 15px 0', fontSize: '16px' }}>💰 Key Financial Numbers</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                    <div><strong>Total Assets:</strong> ${summary.keyNumbers.totalAssets.toLocaleString()}</div>
-                    <div><strong>Total Debts:</strong> ${summary.keyNumbers.totalDebts.toLocaleString()}</div>
-                    <div><strong>Net Worth:</strong> ${summary.keyNumbers.netWorth.toLocaleString()}</div>
-                    <div><strong>Monthly Income:</strong> ${summary.keyNumbers.monthlyIncome.toLocaleString()}</div>
-                    <div><strong>Monthly Expenses:</strong> ${summary.keyNumbers.monthlyExpenses.toLocaleString()}</div>
-                    <div><strong>Protection Gap:</strong> ${summary.keyNumbers.protectionGap.toLocaleString()}</div>
-                  </div>
-                </div>
-
-                {/* Ratio Analysis */}
-                {summary.ratioAnalysis && (
-                  <div style={{ padding: '15px', backgroundColor: '#fff3cd', borderRadius: '6px', border: '1px solid #ffeaa7', marginBottom: '15px' }}>
-                    <h4 style={{ color: '#856404', margin: '0 0 10px 0', fontSize: '16px' }}>📈 Financial Ratio Analysis</h4>
-                    <p style={{ margin: 0, color: '#856404', lineHeight: '1.5' }}>{summary.ratioAnalysis}</p>
-                  </div>
-                )}
-
-                {/* Priority Focus */}
-                <div style={{ padding: '15px', backgroundColor: '#cce5ff', borderRadius: '6px', border: '1px solid #99ccff' }}>
-                  <h4 style={{ color: '#0066cc', margin: '0 0 10px 0', fontSize: '16px' }}>🎯 Priority Focus</h4>
-                  <p style={{ margin: 0, color: '#0066cc', fontWeight: '500' }}>{summary.priority}</p>
-                </div>
-              </>
-            )
-          })()}
         </div>
 
         <h3>Your Prioritized Action Plan:</h3>
