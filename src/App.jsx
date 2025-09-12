@@ -4,6 +4,7 @@ export default function App() {
   // Form state
   const [currentStep, setCurrentStep] = useState('landing') // landing, assessment, results
   const [currentInstrument, setCurrentInstrument] = useState(0) // Track current subpillar instrument
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0) // Track current question within instrument
   const [formData, setFormData] = useState({
     income: '',
     expenses: '',
@@ -1354,6 +1355,14 @@ export default function App() {
       emergencyFund: ''
     })
     setResults(null)
+  }
+
+  const editAssessment = () => {
+    // Go back to assessment mode while preserving all current data
+    setCurrentStep('assessment')
+    setCurrentInstrument(0) // Start from the first instrument
+    setCurrentQuestionIndex(0) // Start from the first question
+    // Keep formData and results intact so user can modify and recalculate
   }
 
   // Tile interaction handlers
@@ -2751,6 +2760,22 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
           </div>
         </div>
 
+        {/* Edit Mode Indicator */}
+        {results && (
+          <div style={{ 
+            backgroundColor: '#fff3cd', 
+            border: '1px solid #ffeaa7', 
+            borderRadius: '6px', 
+            padding: '12px 20px', 
+            margin: '15px 0',
+            textAlign: 'center'
+          }}>
+            <span style={{ color: '#856404', fontSize: '14px', fontWeight: '500' }}>
+              ✏️ <strong>Edit Mode:</strong> You're modifying your assessment. Changes will update your results automatically.
+            </span>
+          </div>
+        )}
+
         {/* Privacy Disclaimer */}
         <div style={styles.privacyDisclaimer}>
           <span style={{ fontSize: '16px' }}>🔒</span>
@@ -2930,14 +2955,32 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
 
         {/* Navigation Buttons */}
         <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button
-            style={styles.secondaryButton}
-            onClick={handleBack}
-            disabled={currentInstrument === 0}
-          >
-            ← Back
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {currentInstrument > 0 && (
+            <button
+              style={styles.secondaryButton}
+              onClick={handleBack}
+            >
+              ← Back
+            </button>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: currentInstrument === 0 ? 'auto' : '0' }}>
+            {/* View Results button when in edit mode */}
+            {results && (
+              <button
+                style={{
+                  ...styles.button,
+                  backgroundColor: '#28a745',
+                  marginRight: '10px'
+                }}
+                onClick={() => {
+                  const calculatedResults = calculateFinancialNeeds()
+                  setResults(calculatedResults)
+                  setCurrentStep('results')
+                }}
+              >
+                📊 View Updated Results
+              </button>
+            )}
             {instrumentCompletion < 100 && (
               <span style={{ fontSize: '14px', color: '#dc3545' }}>
                 Complete all questions to proceed
@@ -3461,15 +3504,26 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
           <button style={styles.button} onClick={printResults}>
             📄 Export to PDF
           </button>
+          <button style={{ 
+            ...styles.button, 
+            backgroundColor: '#6c757d',
+            marginLeft: '10px',
+            marginRight: '10px'
+          }} onClick={editAssessment}>
+            ✏️ Edit Assessment
+          </button>
           <button style={styles.secondaryButton} onClick={startOver}>
             Start Over
           </button>
         </div>
 
         <div style={{ marginTop: '30px', padding: '15px', backgroundColor: '#e7f3ff', borderRadius: '6px' }}>
-          <p style={{ margin: 0, fontSize: '14px', color: '#0066cc' }}>
+          <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#0066cc' }}>
             💡 <strong>Next Steps:</strong> This assessment covers all five pillars of family financial protection. 
             Consider speaking with a financial advisor to implement these recommendations and review annually.
+          </p>
+          <p style={{ margin: 0, fontSize: '14px', color: '#0066cc' }}>
+            ✏️ <strong>Need to adjust something?</strong> Use the "Edit Assessment" button above to modify any values and see updated results instantly.
           </p>
         </div>
       </div>
