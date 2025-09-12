@@ -1,9 +1,4 @@
 import React, { useState } from 'react'
-import { questions } from './data/questions.js'
-import { pillarData, productInfo } from './data/config.js'
-import { calculateFinancialNeeds, generateSummaryAnalysis } from './utils/calculations.js'
-import { generatePDF } from './utils/pdfUtils.js'
-import { validateFormData, formatCurrencyInput, parseCurrencyInput } from './utils/validators.js'
 
 export default function App() {
   // Form state
@@ -26,26 +21,48 @@ export default function App() {
   const [expandedInstruments, setExpandedInstruments] = useState({})
   const [productInfoModal, setProductInfoModal] = useState({ isOpen: false, product: null })
 
-  // Get unique instruments in order
-  const getInstruments = () => {
-    const uniqueInstruments = []
-    const seen = new Set()
+  // Enhanced assessment questions grouped by instrument (subpillar)
+  const questions = [
+    // BENEFITS PILLAR (A) - Life Insurance Instrument
+    {
+      id: 'termLifeInsurance',
+      question: 'How much Term Life Insurance do you have?',
+      placeholder: '250000',
+      type: 'number',
+      label: '$',
+      pillar: 'benefits',
+      instrument: 'Life Insurance',
+      nationalAverage: 'US Average: $178,000 (62% of families have term life insurance)',
+      helpText: 'Term life insurance is typically 10-12x your annual income'
+    },
+    {
+      id: 'wholeLifeInsurance',
+      question: 'How much Whole Life Insurance do you have?',
+      placeholder: '0',
+      type: 'number',
+      label: '$',
+      pillar: 'benefits',
+      instrument: 'Life Insurance',
+      nationalAverage: 'US Average: $45,000 (19% of families have whole life insurance)',
+      helpText: 'Whole life combines insurance with investment savings'
+    },
+    {
+      id: 'groupLifeInsurance',
+      question: 'How much Group Life Insurance (through employer) do you have?',
+      placeholder: '100000',
+      type: 'number',
+      label: '$',
+      pillar: 'benefits',
+      instrument: 'Life Insurance',
+      nationalAverage: 'US Average: $75,000 (85% of employers offer group life insurance)',
+      helpText: 'Usually 1-2x your annual salary, provided by your employer'
+    },
 
-    for (const question of questions) {
-      if (!seen.has(question.instrument)) {
-        seen.add(question.instrument)
-        uniqueInstruments.push({
-          name: question.instrument,
-          pillar: question.pillar
-        })
-      }
-    }
-
-    return uniqueInstruments
-  }
-
-  // Event handlers
-  const handleInputChange = (field, value) => {
+    // BENEFITS PILLAR (A) - Retirement Accounts Instrument
+    {
+      id: 'traditional401k',
+      question: 'How much do you have in Traditional 401(k) accounts?',
+      placeholder: '75000',
       type: 'number',
       label: '$',
       pillar: 'benefits',
@@ -1288,7 +1305,7 @@ export default function App() {
       setCurrentInstrument(currentInstrument + 1)
     } else {
       // All instruments completed, calculate results
-      const calculatedResults = calculateFinancialNeeds(formData)
+      const calculatedResults = calculateFinancialNeeds()
       setResults(calculatedResults)
       setCurrentStep('results')
     }
@@ -2956,7 +2973,7 @@ Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
                   marginRight: '10px'
                 }}
                 onClick={() => {
-                  const calculatedResults = calculateFinancialNeeds(formData)
+                  const calculatedResults = calculateFinancialNeeds()
                   setResults(calculatedResults)
                   setCurrentStep('results')
                 }}
