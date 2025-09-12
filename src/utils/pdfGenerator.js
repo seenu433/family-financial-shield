@@ -175,8 +175,8 @@ export const generatePDF = (results) => {
       
       const pillars = [
         { name: 'Benefits (Life Insurance, Savings)', score: results?.benefitsScore || 0, icon: '[BANK]' },
-        { name: 'Debt Management', score: results?.debtScore || 0, icon: '[DEBT]' },
-        { name: 'Tax Planning', score: results?.taxScore || 0, icon: '[TAX]' },
+        { name: 'Liabilities', score: results?.debtScore || 0, icon: '[DEBT]' },
+        { name: 'Taxes', score: results?.taxScore || 0, icon: '[TAX]' },
         { name: 'Emergency Fund', score: results?.emergencyScore || 0, icon: '[EMERGENCY]' },
         { name: 'Legal Planning', score: results?.legalScore || 0, icon: '[LEGAL]' }
       ];
@@ -405,8 +405,8 @@ OVERALL STATUS: ${results?.statusText || 'Not calculated'} - ${Math.round(result
 
 FIVE PILLAR ANALYSIS:
 • Benefits: ${results?.benefitsScore || 0}%
-• Debt Management: ${results?.debtScore || 0}%
-• Tax Planning: ${results?.taxScore || 0}%
+• Liabilities: ${results?.debtScore || 0}%
+• Taxes: ${results?.taxScore || 0}%
 • Emergency Fund: ${results?.emergencyScore || 0}%
 • Legal Planning: ${results?.legalScore || 0}%
 

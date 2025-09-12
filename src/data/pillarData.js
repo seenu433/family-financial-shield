@@ -1,4 +1,3 @@
-// Detailed pillar data with instruments for the Family Financial Shield assessment
 export const pillarData = {
   benefits: {
     title: 'Benefits (A)',
@@ -97,7 +96,7 @@ export const pillarData = {
     ]
   },
   legal: {
-    title: 'Legal & Administrative (C)',
+    title: 'Legal Expenses',
     icon: '⚖️',
     summary: ['Probate Costs', 'Estate Administration', 'Legal Documentation', 'Court Fees', 'Professional Services'],
     instruments: [
@@ -125,6 +124,38 @@ export const pillarData = {
         name: 'Ongoing Legal Support',
         description: 'Continued legal assistance that survivors may need',
         relatedProducts: ['Estate Litigation', 'Tax Disputes', 'Insurance Claims', 'Business Succession', 'Guardian Appointments']
+      }
+    ]
+  },
+  emergency: {
+    title: 'Emergency Fund',
+    icon: '🚨',
+    summary: ['6-Month Expense Reserve', 'Liquid Savings', 'Easy Access Funds', 'Financial Safety Net', 'Unexpected Costs Buffer'],
+    instruments: [
+      {
+        name: 'High-Yield Savings Account',
+        description: 'FDIC-insured savings account with competitive interest rates for emergency funds',
+        relatedProducts: ['Online High-Yield Savings', 'Credit Union Savings', 'Money Market Accounts', 'FDIC Insurance Protection']
+      },
+      {
+        name: 'Money Market Account',
+        description: 'Higher interest account with limited monthly transactions and check-writing privileges',
+        relatedProducts: ['Bank Money Market', 'Credit Union Money Market', 'Tiered Interest Rates', 'Debit Card Access']
+      },
+      {
+        name: 'Certificates of Deposit (CDs)',
+        description: 'Time deposits with fixed interest rates, suitable for portion of emergency fund',
+        relatedProducts: ['Short-Term CDs', 'CD Ladders', 'Bump-Up CDs', 'No-Penalty CDs']
+      },
+      {
+        name: 'Treasury Bills',
+        description: 'Short-term government securities that are highly liquid and safe',
+        relatedProducts: ['4-Week T-Bills', '13-Week T-Bills', '26-Week T-Bills', 'TreasuryDirect Account']
+      },
+      {
+        name: 'Roth IRA (Emergency Access)',
+        description: 'Roth IRA contributions can be withdrawn penalty-free for emergencies',
+        relatedProducts: ['Roth IRA Contributions', 'Early Withdrawal Rules', 'Tax-Free Growth', 'Retirement + Emergency Dual Purpose']
       }
     ]
   },

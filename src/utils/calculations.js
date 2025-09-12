@@ -1,8 +1,4 @@
-// Financial needs calculation utility for Family Financial Shield assessment
-// This function calculates comprehensive financial protection needs, gaps, and recommendations
-
 export const calculateFinancialNeeds = (formData) => {
-  // BENEFITS PILLAR (A) - Sum all protection sources
   const lifeInsuranceTotal = (
     parseFloat(formData.termLifeInsurance) || 0) +
     (parseFloat(formData.wholeLifeInsurance) || 0) +
@@ -26,10 +22,8 @@ export const calculateFinancialNeeds = (formData) => {
   const realEstateValue = parseFloat(formData.homeValue) || 0
   const annualIncome = parseFloat(formData.annualIncome) || 0
   
-  // Total Benefits (A)
   const totalBenefits = lifeInsuranceTotal + retirementAccountsTotal + savingsInvestmentsTotal + realEstateValue
   
-  // DEBTS PILLAR (B) - Sum all outstanding obligations
   const mortgageDebtTotal = (
     parseFloat(formData.primaryMortgage) || 0) +
     (parseFloat(formData.homeEquityLoans) || 0
@@ -44,20 +38,19 @@ export const calculateFinancialNeeds = (formData) => {
   
   const autoLoans = parseFloat(formData.autoLoans) || 0
   const personalLoans = parseFloat(formData.personalLoans) || 0
+  const businessDebts = parseFloat(formData.businessDebts) || 0
+  const medicalDebt = parseFloat(formData.medicalDebt) || 0
   
-  // Total Debts (B)
-  const totalDebts = mortgageDebtTotal + creditCardDebt + studentLoansTotal + autoLoans + personalLoans
-  
-  // TAX IMPLICATIONS (C) - Tax impact on different account types
+  const totalDebts = mortgageDebtTotal + creditCardDebt + studentLoansTotal + autoLoans + personalLoans + businessDebts + medicalDebt
+
   const traditionalAccountTaxImpact = (
     (parseFloat(formData.traditional401k) || 0) +
     (parseFloat(formData.traditionalIRA) || 0)
-  ) * 0.25 // Assume 25% tax rate on traditional accounts
+  ) * 0.25
   
-  const realEstateTaxImpact = realEstateValue * 0.06 // 6% selling costs
+  const realEstateTaxImpact = realEstateValue * 0.06
   const taxImplications = traditionalAccountTaxImpact + realEstateTaxImpact
   
-  // MONTHLY EXPENSES (D) - Sum all living costs
   const monthlyExpensesTotal = (
     parseFloat(formData.housingCosts) || 0) +
     (parseFloat(formData.foodExpenses) || 0) +
@@ -70,7 +63,6 @@ export const calculateFinancialNeeds = (formData) => {
   const dependents = parseFloat(formData.dependents) || 0
   const yearsToProtect = parseFloat(formData.yearsToProtect) || 18
   
-  // LEGAL PLANNING SCORE
   const legalDocuments = [
     formData.hasWill === 'yes' ? 25 : formData.hasWill === 'outdated' ? 15 : 0,
     formData.hasTrust === 'yes' ? 25 : 0,
@@ -79,12 +71,8 @@ export const calculateFinancialNeeds = (formData) => {
   ]
   const legalScore = legalDocuments.reduce((sum, score) => sum + score, 0)
   
-  // ENHANCED CALCULATIONS
+  const educationCosts = dependents * 100000
   
-  // Education costs for children
-  const educationCosts = dependents * 100000 // $100k per child
-  
-  // Annual living expenses × years to protect
   const totalExpenseNeed = (monthlyExpensesTotal * 12) * yearsToProtect
   
   // Total protection needed: A + B + C ≥ D × Years + Education
@@ -146,7 +134,7 @@ export const calculateFinancialNeeds = (formData) => {
     actionItems.push(`💰 Priority: Build emergency fund from ${currentMonths} to ${targetMonths} months of expenses. Save $${monthlyContribution.toLocaleString()}/month for 1 year to reach goal.`)
   }
   
-  // Debt management - specific debt type recommendations
+  // Liabilities - specific debt type recommendations
   const debtRecommendations = []
   if (creditCardDebt > annualIncome * 0.1) {
     debtRecommendations.push(`Credit cards: $${creditCardDebt.toLocaleString()} (${Math.round(creditCardDebt/annualIncome*100)}% of income)`)
