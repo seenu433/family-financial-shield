@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import logoImage from '/logo.png'
 
 export default function App() {
   // Form state
@@ -16,6 +15,8 @@ export default function App() {
   
   // Home page interaction state
   const [flippedTiles, setFlippedTiles] = useState({})
+  const [flippedAnalysisTiles, setFlippedAnalysisTiles] = useState({})
+  const [flippedPillarTiles, setFlippedPillarTiles] = useState({})
   const [expandedInstruments, setExpandedInstruments] = useState({})
   const [productInfoModal, setProductInfoModal] = useState({ isOpen: false, product: null })
 
@@ -545,6 +546,38 @@ export default function App() {
           relatedProducts: ['Childcare', 'School Tuition', 'School Supplies', 'Extracurricular Activities', 'College Savings']
         }
       ]
+    },
+    documentation: {
+      title: 'Documentation',
+      icon: '📋',
+      summary: ['Will & Testament', 'Trust Documents', 'Power of Attorney', 'Healthcare Directives', 'Beneficiary Updates'],
+      instruments: [
+        {
+          name: 'Will & Testament',
+          description: 'Legal document specifying how assets should be distributed and who should care for minor children',
+          relatedProducts: ['Last Will & Testament', 'Pour-Over Will', 'Living Will', 'Ethical Will', 'Codicil (Will Amendment)']
+        },
+        {
+          name: 'Trust Documents',
+          description: 'Legal structures that hold assets for beneficiaries and can avoid probate',
+          relatedProducts: ['Revocable Living Trust', 'Irrevocable Trust', 'Special Needs Trust', 'Charitable Trust', 'Family Trust']
+        },
+        {
+          name: 'Power of Attorney',
+          description: 'Legal authorization for someone to make financial decisions if you become incapacitated',
+          relatedProducts: ['Durable Power of Attorney', 'Financial Power of Attorney', 'Limited Power of Attorney', 'Springing Power of Attorney']
+        },
+        {
+          name: 'Healthcare Directives',
+          description: 'Documents that specify medical wishes and authorize someone to make healthcare decisions',
+          relatedProducts: ['Healthcare Power of Attorney', 'Living Will', 'Advance Healthcare Directive', 'DNR Orders', 'HIPAA Authorization']
+        },
+        {
+          name: 'Beneficiary Designations',
+          description: 'Updated beneficiary information on all accounts and policies to ensure proper asset transfer',
+          relatedProducts: ['Retirement Account Beneficiaries', 'Life Insurance Beneficiaries', 'Bank Account Payable-on-Death', 'Investment Account TOD', 'IRA Beneficiary Forms']
+        }
+      ]
     }
   }
 
@@ -712,11 +745,18 @@ export default function App() {
     const currentEmergencyFund = parseFloat(formData.savingsAccounts) || 0
     const emergencyGap = Math.max(0, targetEmergencyFund - currentEmergencyFund)
     
-    // DETAILED PILLAR SCORING
-    const benefitsScore = currentProtection >= totalProtectionNeeded ? 100 : (currentProtection / totalProtectionNeeded) * 100
-    const emergencyScore = currentEmergencyFund >= targetEmergencyFund ? 100 : (currentEmergencyFund / targetEmergencyFund) * 100
-    const debtScore = totalDebts === 0 ? 100 : Math.max(0, 100 - (totalDebts / annualIncome) * 15)
-    const taxScore = retirementAccountsTotal > annualIncome ? 90 : (retirementAccountsTotal / annualIncome) * 90
+    // DETAILED PILLAR SCORING WITH SAFEGUARDS
+    const benefitsScore = totalProtectionNeeded === 0 ? 100 : 
+      Math.min(100, Math.max(0, (currentProtection / totalProtectionNeeded) * 100))
+    
+    const emergencyScore = targetEmergencyFund === 0 ? 100 : 
+      Math.min(100, Math.max(0, (currentEmergencyFund / targetEmergencyFund) * 100))
+    
+    const debtScore = totalDebts === 0 ? 100 : 
+      annualIncome === 0 ? 0 : Math.max(0, 100 - (totalDebts / annualIncome) * 15)
+    
+    const taxScore = annualIncome === 0 ? 0 : 
+      Math.min(90, Math.max(0, (retirementAccountsTotal / annualIncome) * 90))
     
     const overallScore = (benefitsScore + emergencyScore + debtScore + legalScore + taxScore) / 5
 
@@ -737,24 +777,42 @@ export default function App() {
     // Benefits & Protection gaps - detailed recommendations
     if (protectionGap > 0) {
       if (lifeInsuranceTotal < protectionGap * 0.7) {
-        actionItems.push(`🛡️ Consider additional life insurance: $${Math.round(protectionGap * 0.7).toLocaleString()} (currently have $${lifeInsuranceTotal.toLocaleString()})`)
-      }
-      if (retirementAccountsTotal < annualIncome * 2) {
-        actionItems.push(`🏦 Increase retirement savings to $${(annualIncome * 2).toLocaleString()} (currently have $${retirementAccountsTotal.toLocaleString()})`)
+        const additionalNeeded = Math.round(protectionGap * 0.7 - lifeInsuranceTotal)
+        actionItems.push(`🛡️ Critical: Increase life insurance by $${additionalNeeded.toLocaleString()} (currently have $${lifeInsuranceTotal.toLocaleString()}, need $${Math.round(protectionGap * 0.7).toLocaleString()})`)
+      } else if (lifeInsuranceTotal < protectionGap) {
+        const additionalNeeded = Math.round(protectionGap - lifeInsuranceTotal)
+        actionItems.push(`🛡️ Consider additional life insurance: $${additionalNeeded.toLocaleString()} to fully cover protection gap`)
       }
     }
     
     // Emergency fund gaps - specific to savings
     if (emergencyGap > 0) {
-      actionItems.push(`💰 Build emergency fund by $${emergencyGap.toLocaleString()} (need ${Math.ceil(targetEmergencyFund / monthlyExpensesTotal)} months, have ${Math.floor(currentEmergencyFund / monthlyExpensesTotal)} months)`)
+      const currentMonths = Math.floor(currentEmergencyFund / (monthlyExpensesTotal || 1))
+      const targetMonths = Math.ceil(targetEmergencyFund / (monthlyExpensesTotal || 1))
+      const monthlyContribution = Math.round(emergencyGap / 12)
+      
+      actionItems.push(`💰 Priority: Build emergency fund from ${currentMonths} to ${targetMonths} months of expenses. Save $${monthlyContribution.toLocaleString()}/month for 1 year to reach goal.`)
     }
     
     // Debt management - specific debt type recommendations
-    if (creditCardDebt > 0) {
-      actionItems.push(`💳 Pay down high-interest credit card debt: $${creditCardDebt.toLocaleString()}`)
+    const debtRecommendations = []
+    if (creditCardDebt > annualIncome * 0.1) {
+      debtRecommendations.push(`Credit cards: $${creditCardDebt.toLocaleString()} (${Math.round(creditCardDebt/annualIncome*100)}% of income)`)
     }
-    if (totalDebts > annualIncome * 4) {
-      actionItems.push(`📉 Your debt-to-income ratio is high (${(totalDebts/annualIncome).toFixed(1)}x income) - consider debt consolidation`)
+    if ((parseFloat(formData.personalLoans) || 0) > 0) {
+      debtRecommendations.push(`Personal loans: $${(parseFloat(formData.personalLoans) || 0).toLocaleString()}`)
+    }
+    if ((parseFloat(formData.studentLoans) || 0) > annualIncome * 0.5) {
+      debtRecommendations.push(`Student loans: $${(parseFloat(formData.studentLoans) || 0).toLocaleString()} (consider income-driven repayment)`)
+    }
+    
+    if (debtRecommendations.length > 0) {
+      actionItems.push(`💳 Pay down high-interest debt: ${debtRecommendations.join(', ')}`)
+    }
+    
+    if (totalDebts > annualIncome * 3) {
+      const debtToIncomeRatio = (totalDebts/annualIncome).toFixed(1)
+      actionItems.push(`📉 Your debt-to-income ratio is ${debtToIncomeRatio}x (above recommended 3x) - consider debt consolidation or credit counseling`)
     }
     
     // Legal planning gaps - specific document recommendations
@@ -765,28 +823,53 @@ export default function App() {
     if (formData.hasHealthcareDirectives !== 'yes') missingDocs.push('Healthcare Directives')
     
     if (missingDocs.length > 0) {
-      actionItems.push(`📋 Complete missing legal documents: ${missingDocs.join(', ')}`)
+      actionItems.push(`📋 Complete missing legal documents: ${missingDocs.join(', ')} - essential for family protection`)
     }
     
     // Tax optimization - specific account recommendations
     if (retirementAccountsTotal < annualIncome) {
-      actionItems.push(`� Maximize employer 401(k) match and increase retirement contributions`)
+      actionItems.push(`🏦 Maximize employer 401(k) match and increase retirement contributions`)
     }
-    if ((parseFloat(formData.rothIRA) || 0) + (parseFloat(formData.roth401k) || 0) < retirementAccountsTotal * 0.3) {
-      actionItems.push(`🔄 Consider increasing Roth account allocation for tax diversification`)
+    if ((parseFloat(formData.rothIRA) || 0) + (parseFloat(formData.roth401k) || 0) < retirementAccountsTotal * 0.3 && retirementAccountsTotal > 0) {
+      actionItems.push(`🔄 Consider increasing Roth account allocation for tax diversification (currently ${Math.round(((parseFloat(formData.rothIRA) || 0) + (parseFloat(formData.roth401k) || 0))/retirementAccountsTotal*100)}% Roth)`)
     }
     
     // Specific expense optimization
     if (monthlyExpensesTotal > annualIncome / 12 * 0.8) {
-      actionItems.push(`💡 Review monthly expenses ($${monthlyExpensesTotal.toLocaleString()}) - they're ${Math.round(monthlyExpensesTotal / (annualIncome/12) * 100)}% of monthly income`)
+      actionItems.push(`💡 Review monthly expenses ($${monthlyExpensesTotal.toLocaleString()}) - they're ${Math.round(monthlyExpensesTotal / (annualIncome/12) * 100)}% of monthly income, target 70-80%`)
+    }
+    
+    // Children-specific recommendations
+    if (dependents > 0) {
+      const educationSavings = (parseFloat(formData.educationSavings) || 0)
+      const targetEducation = dependents * 100000 // $100k per child estimate
+      
+      if (educationSavings < targetEducation * 0.5) {
+        const monthlyEducation = Math.round((targetEducation - educationSavings) / (18 * 12))
+        actionItems.push(`🎓 Start/increase 529 education savings: $${monthlyEducation.toLocaleString()}/month for ${dependents} ${dependents === 1 ? 'child' : 'children'} (currently: $${educationSavings.toLocaleString()})`)
+      }
+    }
+    
+    // Income replacement analysis
+    const monthlyIncome = annualIncome / 12
+    const incomeReplacementNeeded = monthlyIncome * 0.7 // 70% replacement ratio
+    const currentMonthlyProtection = (lifeInsuranceTotal + retirementAccountsTotal) / 240 // 20-year payout assumption
+    
+    if (currentMonthlyProtection < incomeReplacementNeeded && lifeInsuranceTotal > 0) {
+      actionItems.push(`📊 Income replacement gap: Current protection provides $${Math.round(currentMonthlyProtection).toLocaleString()}/month, need $${Math.round(incomeReplacementNeeded).toLocaleString()}/month`)
     }
     
     // Additional recommendations for well-protected families
     if (actionItems.length === 0) {
-      actionItems.push('🎉 Excellent! Your family is well protected across all areas')
-      actionItems.push('📊 Consider annual review with financial advisor to optimize strategy')
-      if (dependents > 0) {
-        actionItems.push('🎓 Look into 529 education savings plans for tax-advantaged college funding')
+      actionItems.push('🎉 Excellent! Your family is well-protected across all financial pillars')
+      actionItems.push('📊 Consider annual review with a fee-only financial advisor to optimize strategy')
+      
+      if (retirementAccountsTotal > annualIncome * 3) {
+        actionItems.push('💎 Consider tax-loss harvesting and asset allocation optimization in taxable accounts')
+      }
+      
+      if (dependents > 0 && (parseFloat(formData.educationSavings) || 0) > 50000) {
+        actionItems.push('🎓 Well-funded education savings - consider age-based investment allocation adjustments')
       }
     }
     
@@ -811,6 +894,7 @@ export default function App() {
       retirementAccountsTotal,
       totalDebts,
       monthlyExpensesTotal,
+      taxImplications,
       
       // Pillar scores
       benefitsScore: Math.round(benefitsScore),
@@ -889,6 +973,212 @@ export default function App() {
   // Event handlers
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Extract numerical value from national average text
+  const extractNationalAverageValue = (nationalAverageText) => {
+    if (!nationalAverageText) return 0
+    
+    // Handle special cases with multiple values or calculations
+    if (nationalAverageText.includes('personal loans, $429 medical debt')) {
+      return 6194 // Use the personal loans amount as primary debt
+    }
+    
+    // Extract the first dollar amount from the text
+    const match = nationalAverageText.match(/\$([0-9,]+)/)
+    if (match) {
+      return parseInt(match[1].replace(/,/g, ''))
+    }
+    
+    // Handle monthly amounts (convert to annual if needed)
+    const monthlyMatch = nationalAverageText.match(/\$([0-9,]+)\/month/)
+    if (monthlyMatch) {
+      return parseInt(monthlyMatch[1].replace(/,/g, ''))
+    }
+    
+    return 0
+  }
+
+  // Handle "Use National Average" button click
+  const useNationalAverage = (questionId) => {
+    const question = questions.find(q => q.id === questionId)
+    if (question && question.nationalAverage) {
+      const value = extractNationalAverageValue(question.nationalAverage)
+      handleInputChange(questionId, value.toString())
+    }
+  }
+
+  // Toggle analysis tile flip
+  const toggleAnalysisTile = (tileId) => {
+    setFlippedAnalysisTiles(prev => ({
+      ...prev,
+      [tileId]: !prev[tileId]
+    }))
+  }
+
+  // Toggle pillar tile flip
+  const togglePillarTile = (pillarId) => {
+    setFlippedPillarTiles(prev => ({
+      ...prev,
+      [pillarId]: !prev[pillarId]
+    }))
+  }
+
+  // Get pillar percentage explanations
+  const getPillarExplanation = (pillarId, results) => {
+    switch (pillarId) {
+      case 'benefits':
+        return {
+          title: '💰 Benefits Score Explanation',
+          calculation: `Your benefits coverage is ${results.benefitsScore}% of optimal protection`,
+          breakdown: [
+            `Life Insurance: $${(parseFloat(formData.termLifeInsurance) || 0) + (parseFloat(formData.wholeLifeInsurance) || 0) + (parseFloat(formData.groupLifeInsurance) || 0)}`,
+            `Retirement Accounts: $${(parseFloat(formData.traditional401k) || 0) + (parseFloat(formData.roth401k) || 0) + (parseFloat(formData.traditionalIRA) || 0) + (parseFloat(formData.rothIRA) || 0)}`,
+            `Savings & Investments: $${(parseFloat(formData.savingsAccounts) || 0) + (parseFloat(formData.investmentAccounts) || 0)}`,
+            `Real Estate Value: $${parseFloat(formData.homeValue) || 0}`
+          ],
+          explanation: 'This score measures how well your current assets would protect your family. Higher scores mean better protection coverage.'
+        }
+      case 'debt':
+        return {
+          title: '💳 Debt Management Score Explanation',
+          calculation: `Your debt management is ${results.debtScore}% optimized`,
+          breakdown: [
+            `Mortgage Debt: $${(parseFloat(formData.primaryMortgage) || 0) + (parseFloat(formData.homeEquityLoans) || 0)}`,
+            `Credit Card Debt: $${parseFloat(formData.creditCardDebt) || 0}`,
+            `Student Loans: $${(parseFloat(formData.federalStudentLoans) || 0) + (parseFloat(formData.privateStudentLoans) || 0)}`,
+            `Auto & Personal Loans: $${(parseFloat(formData.autoLoans) || 0) + (parseFloat(formData.personalLoans) || 0)}`
+          ],
+          explanation: 'Lower debt levels mean more resources available for family protection. Focus on paying down high-interest debt first.'
+        }
+      case 'tax':
+        return {
+          title: '🏛️ Tax Planning Score Explanation',
+          calculation: `Your tax efficiency is ${results.taxScore}% optimized`,
+          breakdown: [
+            'Tax-advantaged accounts reduce family tax burden',
+            'Estate planning minimizes transfer taxes',
+            'Strategic asset location improves after-tax returns',
+            'Roth accounts provide tax-free income for survivors'
+          ],
+          explanation: 'Effective tax planning preserves more wealth for your family by minimizing unnecessary tax obligations.'
+        }
+      case 'emergency':
+        return {
+          title: '🏠 Emergency Fund Score Explanation',
+          calculation: `Your emergency fund covers ${results.emergencyScore}% of recommended 6-month expenses`,
+          breakdown: [
+            `Monthly Expenses: $${results.monthlyExpensesTotal.toLocaleString()}`,
+            `6-Month Target: $${(results.monthlyExpensesTotal * 6).toLocaleString()}`,
+            `Current Emergency Fund: $${parseFloat(formData.emergencyFund) || 0}`,
+            `Gap: $${Math.max(0, (results.monthlyExpensesTotal * 6) - (parseFloat(formData.emergencyFund) || 0)).toLocaleString()}`
+          ],
+          explanation: 'Emergency funds provide immediate financial stability when income is disrupted, preventing debt accumulation.'
+        }
+      case 'legal':
+        return {
+          title: '📋 Legal Planning Score Explanation',
+          calculation: `Your legal documents are ${results.legalScore}% complete`,
+          breakdown: [
+            `Will: ${formData.hasWill === 'yes' ? '✅ Complete (25%)' : formData.hasWill === 'outdated' ? '⚠️ Outdated (15%)' : '❌ Missing (0%)'}`,
+            `Trust: ${formData.hasTrust === 'yes' ? '✅ Complete (25%)' : '❌ Missing (0%)'}`,
+            `Power of Attorney: ${formData.hasPowerOfAttorney === 'yes' ? '✅ Complete (25%)' : '❌ Missing (0%)'}`,
+            `Healthcare Directives: ${formData.hasHealthcareDirectives === 'yes' ? '✅ Complete (25%)' : '❌ Missing (0%)'}`
+          ],
+          explanation: 'Proper legal documents ensure your wishes are followed and reduce administrative costs for your family.'
+        }
+      case 'documentation':
+        return {
+          title: '📋 Documentation Score Explanation',
+          calculation: `Your legal documents are ${results?.legalScore || 0}% complete`,
+          breakdown: [
+            `Will & Testament: ${formData.hasWill === 'yes' ? '✅ Current' : formData.hasWill === 'outdated' ? '⚠️ Needs Update' : '❌ Missing'}`,
+            `Trust Documents: ${formData.hasTrust === 'yes' ? '✅ Established' : '❌ Not Created'}`,
+            `Power of Attorney: ${formData.hasPowerOfAttorney === 'yes' ? '✅ Signed' : '❌ Missing'}`,
+            `Healthcare Directives: ${formData.hasHealthcareDirectives === 'yes' ? '✅ Complete' : '❌ Missing'}`,
+            'Beneficiary Designations: Review annually for all accounts'
+          ],
+          explanation: 'Complete documentation protects your family by ensuring your wishes are legally enforceable and reduces administrative burden during difficult times.'
+        }
+      default:
+        return null
+    }
+  }
+
+  // Get calculation details for each tile
+  const getCalculationDetails = (tileId, results) => {
+    switch (tileId) {
+      case 'benefits':
+        return {
+          title: 'Benefits Calculation (A)',
+          items: [
+            { label: 'Term Life Insurance', value: `$${(parseFloat(formData.termLifeInsurance) || 0).toLocaleString()}` },
+            { label: 'Whole Life Insurance', value: `$${(parseFloat(formData.wholeLifeInsurance) || 0).toLocaleString()}` },
+            { label: 'Group Life Insurance', value: `$${(parseFloat(formData.groupLifeInsurance) || 0).toLocaleString()}` },
+            { label: '401(k) Balance', value: `$${(parseFloat(formData.employerRetirement) || 0).toLocaleString()}` },
+            { label: 'HSA Balance', value: `$${(parseFloat(formData.healthSavingsAccount) || 0).toLocaleString()}` },
+            { label: 'IRA Balance', value: `$${(parseFloat(formData.traditionalIRA) || 0).toLocaleString()}` },
+            { label: 'Roth IRA Balance', value: `$${(parseFloat(formData.rothIRA) || 0).toLocaleString()}` },
+            { label: 'Savings Accounts', value: `$${(parseFloat(formData.savingsAccounts) || 0).toLocaleString()}` },
+            { label: 'Investment Accounts', value: `$${(parseFloat(formData.investmentAccounts) || 0).toLocaleString()}` },
+            { label: 'Home Value', value: `$${(parseFloat(formData.primaryResidence) || 0).toLocaleString()}` }
+          ]
+        }
+      case 'debts':
+        return {
+          title: 'Debts Calculation (B)',
+          items: [
+            { label: 'Primary Mortgage', value: `$${(parseFloat(formData.primaryMortgage) || 0).toLocaleString()}` },
+            { label: 'Home Equity Loans', value: `$${(parseFloat(formData.homeEquityLoans) || 0).toLocaleString()}` },
+            { label: 'Credit Card Debt', value: `$${(parseFloat(formData.creditCardDebt) || 0).toLocaleString()}` },
+            { label: 'Federal Student Loans', value: `$${(parseFloat(formData.federalStudentLoans) || 0).toLocaleString()}` },
+            { label: 'Private Student Loans', value: `$${(parseFloat(formData.privateStudentLoans) || 0).toLocaleString()}` },
+            { label: 'Auto Loans', value: `$${(parseFloat(formData.autoLoans) || 0).toLocaleString()}` },
+            { label: 'Other Debts', value: `$${(parseFloat(formData.otherDebts) || 0).toLocaleString()}` }
+          ]
+        }
+      case 'expenses':
+        return {
+          title: 'Monthly Expenses Calculation (D)',
+          items: [
+            { label: 'Housing Costs', value: `$${(parseFloat(formData.housingCosts) || 0).toLocaleString()}/month` },
+            { label: 'Food Expenses', value: `$${(parseFloat(formData.foodExpenses) || 0).toLocaleString()}/month` },
+            { label: 'Transportation', value: `$${(parseFloat(formData.transportationCosts) || 0).toLocaleString()}/month` },
+            { label: 'Healthcare Costs', value: `$${(parseFloat(formData.healthcareCosts) || 0).toLocaleString()}/month` },
+            { label: 'Childcare/Education', value: `$${(parseFloat(formData.childcareEducation) || 0).toLocaleString()}/month` },
+            { label: 'Total Monthly', value: `$${results.monthlyExpensesTotal.toLocaleString()}/month` },
+            { label: 'Annual Expenses', value: `$${(results.monthlyExpensesTotal * 12).toLocaleString()}/year` }
+          ]
+        }
+      case 'protection':
+        return {
+          title: 'Protection Analysis Calculation',
+          items: [
+            { label: 'Total Debts (B)', value: `$${results.totalDebts.toLocaleString()}` },
+            { label: 'Tax Implications (C)', value: `$${results.taxImplications.toLocaleString()}` },
+            { label: 'Living Expenses (D × Years)', value: `$${(results.monthlyExpensesTotal * 12 * (parseFloat(formData.yearsToProtect) || 18)).toLocaleString()}` },
+            { label: 'Education Costs', value: `$${((parseFloat(formData.dependents) || 0) * 100000).toLocaleString()}` },
+            { label: 'Total Protection Needed', value: `$${results.totalProtectionNeeded.toLocaleString()}` },
+            { label: 'Current Protection (A)', value: `$${results.currentProtection.toLocaleString()}` },
+            { label: 'Protection Gap', value: `$${results.protectionGap.toLocaleString()}` }
+          ]
+        }
+      default:
+        return { title: 'Calculation', items: [] }
+    }
+  }
+
+  // Use national averages for all questions in current instrument
+  const useAllNationalAverages = () => {
+    const instrumentData = getCurrentInstrumentData()
+    if (instrumentData) {
+      instrumentData.questions.forEach(question => {
+        if (question.nationalAverage) {
+          const value = extractNationalAverageValue(question.nationalAverage)
+          handleInputChange(question.id, value.toString())
+        }
+      })
+    }
   }
 
   const handleNext = () => {
@@ -1083,32 +1373,210 @@ export default function App() {
     )
   }
 
-  const saveResults = () => {
-    // Create a simple text version for saving/printing
-    const resultText = `
-Family Financial Shield Assessment Results
+  const printResults = () => {
+    // Function to remove emojis for PDF compatibility
+    const removeEmojis = (text) => {
+      return text.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
+    };
 
-Status: ${results.statusText}
-Overall Score: ${Math.round(results.overallScore)}%
+    // Generate PDF using jsPDF
+    try {
+      // Dynamic import of jsPDF to avoid bundle size issues
+      import('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js').then(() => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Set up document properties
+        doc.setProperties({
+          title: 'Family Financial Shield Assessment Results',
+          creator: 'Family Financial Shield',
+          author: 'Financial Assessment Tool'
+        });
+        
+        // Title and header
+        doc.setFontSize(20);
+        doc.setTextColor(0, 123, 255); // Blue color
+        doc.text('Family Financial Shield', 20, 20);
+        
+        doc.setFontSize(16);
+        doc.setTextColor(0, 0, 0); // Black color
+        doc.text('Your Family Financial Protection Assessment', 20, 35);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(102, 102, 102); // Gray color
+        doc.text(`Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 20, 45);
+        
+        // Status Badge
+        let yPosition = 60;
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        const statusColor = results?.status === 'green' ? [40, 167, 69] : results?.status === 'yellow' ? [255, 193, 7] : [220, 53, 69];
+        doc.setFillColor(...statusColor);
+        doc.rect(20, yPosition - 5, 170, 15, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.text(`${results?.statusText || 'Not calculated'} - ${Math.round(results?.overallScore || 0)}% Protected`, 25, yPosition + 5);
+        
+        // Five Pillar Analysis
+        yPosition += 25;
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(14);
+        doc.text('Five Pillar Analysis', 20, yPosition);
+        
+        yPosition += 10;
+        doc.setFontSize(10);
+        
+        const pillars = [
+          { name: 'Benefits', score: results?.benefitsScore || 0 },
+          { name: 'Debt Management', score: results?.debtScore || 0 },
+          { name: 'Tax Planning', score: results?.taxScore || 0 },
+          { name: 'Emergency Fund', score: results?.emergencyScore || 0 },
+          { name: 'Legal Planning', score: results?.legalScore || 0 }
+        ];
+        
+        pillars.forEach((pillar, index) => {
+          const xPos = 20 + (index % 3) * 60;
+          const yPos = yPosition + Math.floor(index / 3) * 20;
+          
+          doc.text(pillar.name, xPos, yPos);
+          doc.text(`${pillar.score}%`, xPos, yPos + 8);
+          
+          // Score bar
+          const barWidth = 40;
+          const fillWidth = (pillar.score / 100) * barWidth;
+          const barColor = pillar.score >= 70 ? [40, 167, 69] : pillar.score >= 40 ? [255, 193, 7] : [220, 53, 69];
+          
+          doc.setDrawColor(200, 200, 200);
+          doc.rect(xPos, yPos + 10, barWidth, 3);
+          doc.setFillColor(...barColor);
+          doc.rect(xPos, yPos + 10, fillWidth, 3, 'F');
+        });
+        
+        // Key Financial Numbers
+        yPosition += 60;
+        doc.setFontSize(14);
+        doc.text('Key Financial Numbers', 20, yPosition);
+        
+        yPosition += 10;
+        doc.setFontSize(10);
+        
+        const financialData = [
+          ['Current Protection:', `$${(results?.currentProtection || 0).toLocaleString()}`],
+          ['Total Protection Needed:', `$${(results?.totalProtectionNeeded || 0).toLocaleString()}`],
+          ['Protection Gap:', `$${(results?.protectionGap || 0).toLocaleString()}`],
+          ['Emergency Fund Gap:', `$${(results?.emergencyGap || 0).toLocaleString()}`]
+        ];
+        
+        financialData.forEach((item, index) => {
+          const yPos = yPosition + (index * 8);
+          doc.text(item[0], 20, yPos);
+          doc.text(item[1], 120, yPos);
+        });
+        
+        // Action Items
+        yPosition += 50;
+        doc.setFontSize(14);
+        doc.text('Prioritized Action Items', 20, yPosition);
+        
+        yPosition += 10;
+        doc.setFontSize(10);
+        
+        results?.actionItems?.slice(0, 8).forEach((item, index) => {
+          const yPos = yPosition + (index * 12);
+          const cleanItem = removeEmojis(item);
+          
+          // Check if we need a new page
+          if (yPos > 270) {
+            doc.addPage();
+            yPosition = 20;
+            const newYPos = yPosition + (index * 12);
+            
+            // Wrap long text
+            const lines = doc.splitTextToSize(`${index + 1}. ${cleanItem}`, 170);
+            lines.forEach((line, lineIndex) => {
+              doc.text(line, 20, newYPos + (lineIndex * 6));
+            });
+          } else {
+            // Wrap long text
+            const lines = doc.splitTextToSize(`${index + 1}. ${cleanItem}`, 170);
+            lines.forEach((line, lineIndex) => {
+              doc.text(line, 20, yPos + (lineIndex * 6));
+            });
+          }
+        });
+        
+        // Footer
+        const pageCount = doc.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor(102, 102, 102);
+          doc.text('Disclaimer: This assessment is for educational purposes only and is not financial advice.', 20, 285);
+          doc.text('Please consult with a licensed financial advisor for personalized recommendations.', 20, 290);
+          doc.text(`Family Financial Shield | Page ${i} of ${pageCount}`, 20, 295);
+        }
+        
+        // Generate and download PDF
+        const filename = `Family-Financial-Assessment-${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(filename);
+        
+      }).catch(error => {
+        console.error('Error loading jsPDF:', error);
+        // Fallback to simple text download
+        fallbackTextDownload();
+      });
+      
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      fallbackTextDownload();
+    }
+  };
+  
+  const fallbackTextDownload = () => {
+    // Function to remove emojis for better compatibility
+    const removeEmojis = (text) => {
+      return text.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
+    };
 
-Recommended Life Insurance: $${results.recommendedInsurance.toLocaleString()}
-Insurance Gap: $${results.insuranceGap.toLocaleString()}
-Emergency Fund Gap: $${results.emergencyGap.toLocaleString()}
+    // Fallback: Generate a text file with results
+    const textContent = `
+FAMILY FINANCIAL SHIELD ASSESSMENT RESULTS
+Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
 
-Action Items:
-${results.actionItems.map((item, index) => `${index + 1}. ${item}`).join('\n')}
+OVERALL STATUS: ${results?.statusText || 'Not calculated'} - ${Math.round(results?.overallScore || 0)}% Protected
 
-Generated on: ${new Date().toLocaleDateString()}
-    `.trim()
+FIVE PILLAR ANALYSIS:
+• Benefits: ${results?.benefitsScore || 0}%
+• Debt Management: ${results?.debtScore || 0}%
+• Tax Planning: ${results?.taxScore || 0}%
+• Emergency Fund: ${results?.emergencyScore || 0}%
+• Legal Planning: ${results?.legalScore || 0}%
 
-    // Create and download as text file
-    const blob = new Blob([resultText], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'family-financial-assessment.txt'
-    a.click()
-    URL.revokeObjectURL(url)
+KEY FINANCIAL NUMBERS:
+• Current Protection: $${(results?.currentProtection || 0).toLocaleString()}
+• Total Protection Needed: $${(results?.totalProtectionNeeded || 0).toLocaleString()}
+• Protection Gap: $${(results?.protectionGap || 0).toLocaleString()}
+• Emergency Fund Gap: $${(results?.emergencyGap || 0).toLocaleString()}
+
+PRIORITIZED ACTION ITEMS:
+${(results?.actionItems || []).map((item, index) => `${index + 1}. ${removeEmojis(item)}`).join('\n')}
+
+DISCLAIMER:
+This assessment is for educational purposes only and is not financial advice.
+Please consult with a licensed financial advisor for personalized recommendations.
+
+Family Financial Shield | Financial Protection Assessment Tool
+Visit: https://delightful-ocean-0f14ce90f.1.azurestaticapps.net
+`;
+    
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Family-Financial-Assessment-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   // Styles
@@ -1140,7 +1608,32 @@ Generated on: ${new Date().toLocaleDateString()}
     },
     hero: {
       textAlign: 'center',
-      marginBottom: '40px'
+      marginBottom: '50px',
+      padding: '40px 20px',
+      background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+      borderRadius: '12px',
+      border: '1px solid #dee2e6'
+    },
+    heroTitle: {
+      fontSize: '32px',
+      fontWeight: '700',
+      color: '#2c3e50',
+      marginBottom: '16px',
+      textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+    },
+    heroSubtitle: {
+      fontSize: '20px',
+      color: '#34495e',
+      marginBottom: '24px',
+      fontWeight: '500'
+    },
+    heroDescription: {
+      fontSize: '16px',
+      color: '#5a6c7d',
+      lineHeight: '1.7',
+      marginBottom: '0',
+      maxWidth: '700px',
+      margin: '0 auto'
     },
     button: {
       backgroundColor: '#007bff',
@@ -1239,7 +1732,7 @@ Generated on: ${new Date().toLocaleDateString()}
     },
     pillarsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
       gap: '20px',
       marginBottom: '30px'
     },
@@ -1576,6 +2069,18 @@ Generated on: ${new Date().toLocaleDateString()}
       fontWeight: 'normal',
       transition: 'all 0.2s ease'
     },
+    privacyDisclaimer: {
+      backgroundColor: '#e8f5e8',
+      border: '1px solid #c3e6c3',
+      borderRadius: '6px',
+      padding: '12px 16px',
+      marginBottom: '20px',
+      fontSize: '13px',
+      color: '#2d5016',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    },
     questionsContainer: {
       display: 'flex',
       flexDirection: 'column',
@@ -1645,6 +2150,164 @@ Generated on: ${new Date().toLocaleDateString()}
       margin: '2px 0 0 0',
       lineHeight: '1.4',
       fontStyle: 'italic'
+    },
+    // Analysis tile flip styles
+    analysisTileContainer: {
+      perspective: '1000px',
+      height: 'auto',
+      minHeight: '120px'
+    },
+    analysisTile: {
+      position: 'relative',
+      width: '100%',
+      height: '100%',
+      minHeight: '120px',
+      transformStyle: 'preserve-3d',
+      transition: 'transform 0.6s ease',
+      cursor: 'pointer'
+    },
+    analysisTileFlipped: {
+      transform: 'rotateY(180deg)'
+    },
+    analysisTileFront: {
+      position: 'absolute',
+      width: '100%',
+      height: '100%',
+      backfaceVisibility: 'hidden',
+      backgroundColor: 'white',
+      padding: '15px',
+      borderRadius: '6px',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center'
+    },
+    analysisTileBack: {
+      position: 'absolute',
+      width: '100%',
+      height: '100%',
+      backfaceVisibility: 'hidden',
+      backgroundColor: '#f8f9fa',
+      padding: '15px',
+      borderRadius: '6px',
+      transform: 'rotateY(180deg)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'flex-start',
+      overflow: 'auto'
+    },
+    flipHintText: {
+      fontSize: '11px',
+      color: '#6c757d',
+      fontStyle: 'italic',
+      marginTop: '8px',
+      textAlign: 'center'
+    },
+    calculationHeader: {
+      fontSize: '14px',
+      fontWeight: 'bold',
+      color: '#333',
+      marginBottom: '10px',
+      borderBottom: '1px solid #dee2e6',
+      paddingBottom: '5px'
+    },
+    calculationItem: {
+      fontSize: '12px',
+      color: '#666',
+      marginBottom: '4px',
+      display: 'flex',
+      justifyContent: 'space-between'
+    },
+    // Pillar tile flip styles
+    pillarTileContainer: {
+      perspective: '1000px',
+      height: '180px',
+      minHeight: '180px'
+    },
+    pillarTile: {
+      position: 'relative',
+      width: '100%',
+      height: '100%',
+      transformStyle: 'preserve-3d',
+      transition: 'transform 0.6s ease',
+      cursor: 'pointer'
+    },
+    pillarTileFlipped: {
+      transform: 'rotateY(180deg)'
+    },
+    pillarTileFront: {
+      position: 'absolute',
+      width: '100%',
+      height: '100%',
+      backfaceVisibility: 'hidden',
+      backgroundColor: 'white',
+      padding: '15px',
+      borderRadius: '8px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      border: '1px solid #e9ecef',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      textAlign: 'center',
+      boxSizing: 'border-box'
+    },
+    pillarTileBack: {
+      position: 'absolute',
+      width: '100%',
+      height: '100%',
+      backfaceVisibility: 'hidden',
+      backgroundColor: '#f8f9fa',
+      padding: '12px',
+      borderRadius: '8px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      border: '1px solid #e9ecef',
+      transform: 'rotateY(180deg)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'flex-start',
+      overflow: 'auto',
+      boxSizing: 'border-box'
+    },
+    pillarFlipHint: {
+      fontSize: '10px',
+      color: '#6c757d',
+      fontStyle: 'italic',
+      marginTop: '8px',
+      textAlign: 'center'
+    },
+    pillarExplanationTitle: {
+      fontSize: '14px',
+      fontWeight: 'bold',
+      color: '#333',
+      marginBottom: '8px',
+      textAlign: 'center'
+    },
+    pillarCalculation: {
+      fontSize: '12px',
+      color: '#007bff',
+      marginBottom: '10px',
+      textAlign: 'center',
+      fontWeight: '500'
+    },
+    pillarBreakdownList: {
+      fontSize: '11px',
+      color: '#666',
+      lineHeight: '1.4',
+      margin: '0',
+      padding: '0',
+      listStyle: 'none'
+    },
+    pillarBreakdownItem: {
+      marginBottom: '3px',
+      paddingLeft: '8px',
+      borderLeft: '2px solid #dee2e6'
+    },
+    pillarExplanationText: {
+      fontSize: '11px',
+      color: '#495057',
+      marginTop: '8px',
+      fontStyle: 'italic',
+      lineHeight: '1.3'
     }
   }
 
@@ -1663,20 +2326,22 @@ Generated on: ${new Date().toLocaleDateString()}
     return (
       <div style={styles.container}>
         <div style={styles.header}>
-          <img src={logoImage} alt="Family Financial Shield Logo" style={styles.logo} />
-          <h1 style={styles.headerTitle}>Family Financial Shield</h1>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <img src="/logo.png" alt="Family Financial Shield Logo" style={styles.logo} />
+            <h1 style={styles.headerTitle}>Family Financial Shield</h1>
+          </div>
         </div>
         
         {/* Hero Section */}
         <div style={styles.hero}>
-          <h2 style={{ fontSize: '24px', color: '#333', marginBottom: '15px' }}>
+          <h2 style={styles.heroTitle}>
             How secure is my family?
           </h2>
-          <p style={{ fontSize: '18px', color: '#666', marginBottom: '20px' }}>
-            Protect your family in 3 minutes
+          <p style={styles.heroSubtitle}>
+            Protect your family's financial future in just 3 minutes
           </p>
-          <p style={{ marginBottom: '30px', lineHeight: '1.6' }}>
-            Managing finances after death is an important part of life. Planning for it helps you get to terms with your own mortality and helps your family after you are gone. Our assessment evaluates your family's financial security using a comprehensive framework.
+          <p style={styles.heroDescription}>
+            Financial planning after loss is one of life's most important considerations. Taking time to prepare helps you come to terms with mortality while ensuring your family's security. Our comprehensive assessment evaluates your family's financial protection across five critical areas: benefits, liabilities, taxes, legal planning, and ongoing expenses.
           </p>
         </div>
 
@@ -1690,9 +2355,13 @@ Generated on: ${new Date().toLocaleDateString()}
               Benefits (A) - Liabilities (B) - Taxes (C) ≥ Monthly Expenses (D) × Years
             </span>
           </div>
+          <p style={{ marginTop: '15px', color: '#666', fontSize: '14px' }}>
+            Our assessment evaluates whether your current financial protection can cover your family's needs,
+            plus the legal documentation required to ensure the protection is accessible
+          </p>
         </div>
 
-        {/* Five Pillars Section */}
+        {/* Six Pillars Section */}
         <div style={styles.pillarsSection}>
           <h3 style={{ textAlign: 'center', marginBottom: '30px', color: '#333' }}>
             What We Assess
@@ -1703,6 +2372,7 @@ Generated on: ${new Date().toLocaleDateString()}
             {renderPillarCard('taxes', pillarData.taxes)}
             {renderPillarCard('legal', pillarData.legal)}
             {renderPillarCard('expenses', pillarData.expenses)}
+            {renderPillarCard('documentation', pillarData.documentation)}
           </div>
         </div>
 
@@ -1714,7 +2384,7 @@ Generated on: ${new Date().toLocaleDateString()}
           <div style={styles.processSteps}>
             <div style={styles.processStep}>
               <span style={styles.stepNumber}>1</span>
-              <span>Answer 5 simple questions about your finances</span>
+              <span>Answer questions about your finances (use national averages if unsure)</span>
             </div>
             <div style={styles.processStep}>
               <span style={styles.stepNumber}>2</span>
@@ -1732,12 +2402,37 @@ Generated on: ${new Date().toLocaleDateString()}
           <button style={styles.button} onClick={startAssessment}>
             Start Your 3-Minute Assessment
           </button>
+          
+          {/* Helpful Tip */}
+          <div style={{
+            marginTop: '20px',
+            padding: '15px',
+            backgroundColor: '#e8f5e8',
+            borderRadius: '8px',
+            border: '1px solid #28a745',
+            maxWidth: '500px',
+            margin: '20px auto 0',
+            textAlign: 'left'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '16px' }}>💡</span>
+              <strong style={{ color: '#28a745' }}>Pro Tip:</strong>
+            </div>
+            <p style={{ margin: 0, fontSize: '14px', color: '#2d5a32', lineHeight: '1.4' }}>
+              Don't know your exact numbers? No problem! Each question includes US national averages 
+              that you can use with one click. This gives you a starting point for your assessment.
+            </p>
+          </div>
         </div>
 
         {/* Disclaimer */}
         <div style={styles.disclaimer}>
-          <p style={{ margin: 0, fontSize: '14px', color: '#666', fontStyle: 'italic' }}>
+          <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#666', fontStyle: 'italic' }}>
             <strong>Disclaimer:</strong> The content discussed above is for education only. This is not a comprehensive list and completely depends on your individual situation. You should always consult with a licensed financial advisor.
+          </p>
+          <p style={{ margin: 0, fontSize: '13px', color: '#28a745', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <span>🔒</span>
+            <strong>Privacy Protected:</strong> All information stays on your device. No data is stored or shared.
           </p>
         </div>
 
@@ -1801,7 +2496,7 @@ Generated on: ${new Date().toLocaleDateString()}
       <div style={styles.container}>
         <div style={styles.header}>
           <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-            <img src={logoImage} alt="Family Financial Shield Logo" style={styles.logo} />
+            <img src="/logo.png" alt="Family Financial Shield Logo" style={styles.logo} />
             <h1 style={styles.headerTitle}>Family Financial Shield</h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -1818,9 +2513,41 @@ Generated on: ${new Date().toLocaleDateString()}
           </div>
         </div>
 
+        {/* Privacy Disclaimer */}
+        <div style={styles.privacyDisclaimer}>
+          <span style={{ fontSize: '16px' }}>🔒</span>
+          <span>
+            <strong>Your privacy is protected:</strong> All information entered remains on your device only. 
+            No data is stored, transmitted, or shared with any external systems.
+          </span>
+        </div>
+
         {/* Overall Progress Bar */}
         <div style={styles.progress}>
-          <p>Instrument {currentInstrument + 1} of {instruments.length}: {instrumentData.name}</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <p style={{ margin: 0 }}>Instrument {currentInstrument + 1} of {instruments.length}: {instrumentData.name}</p>
+            <button
+              onClick={useAllNationalAverages}
+              style={{
+                padding: '8px 16px',
+                fontSize: '14px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#218838'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#28a745'}
+              title="Fill all fields with US national averages"
+            >
+              📊 Use All Averages
+            </button>
+          </div>
           <div style={styles.progressBar}>
             <div style={{ ...styles.progressFill, width: `${overallProgress}%` }}></div>
           </div>
@@ -1878,6 +2605,24 @@ Generated on: ${new Date().toLocaleDateString()}
                     {question.nationalAverage && (
                       <div style={styles.nationalAverage}>
                         📊 {question.nationalAverage}
+                        <button
+                          onClick={() => useNationalAverage(question.id)}
+                          style={{
+                            marginLeft: '10px',
+                            padding: '4px 8px',
+                            fontSize: '12px',
+                            backgroundColor: '#007bff',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
+                          onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
+                        >
+                          Use This Value
+                        </button>
                       </div>
                     )}
                     {question.helpText && (
@@ -1981,8 +2726,10 @@ Generated on: ${new Date().toLocaleDateString()}
     return (
       <div style={styles.container}>
         <div style={styles.header}>
-          <img src={logoImage} alt="Family Financial Shield Logo" style={styles.logo} />
-          <h1 style={styles.headerTitle}>Family Financial Shield</h1>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <img src="/logo.png" alt="Family Financial Shield Logo" style={styles.logo} />
+            <h1 style={styles.headerTitle}>Family Financial Shield</h1>
+          </div>
         </div>
         <h2>Your Family Financial Protection Assessment</h2>
 
@@ -1993,41 +2740,206 @@ Generated on: ${new Date().toLocaleDateString()}
         {/* Five Pillar Score Breakdown */}
         <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', margin: '20px 0' }}>
           <h3>Five Pillar Analysis (A + B + C ≥ D × Years):</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '15px' }}>
-            <div style={styles.pillarScore}>
-              <strong>💰 Benefits (A)</strong>
-              <div style={styles.scoreBar}>
-                <div style={{ ...styles.scoreFill, width: `${results.benefitsScore}%`, backgroundColor: results.benefitsScore >= 70 ? '#28a745' : results.benefitsScore >= 40 ? '#ffc107' : '#dc3545' }}></div>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+            gap: '15px', 
+            marginTop: '15px',
+            alignItems: 'start'
+          }}>
+            {/* Benefits Pillar */}
+            <div style={styles.pillarTileContainer}>
+              <div 
+                style={{
+                  ...styles.pillarTile,
+                  ...(flippedPillarTiles.benefits ? styles.pillarTileFlipped : {})
+                }}
+                onClick={() => togglePillarTile('benefits')}
+              >
+                {/* Front of tile */}
+                <div style={styles.pillarTileFront}>
+                  <strong>💰 Benefits (A)</strong>
+                  <div style={styles.scoreBar}>
+                    <div style={{ ...styles.scoreFill, width: `${results.benefitsScore}%`, backgroundColor: results.benefitsScore >= 70 ? '#28a745' : results.benefitsScore >= 40 ? '#ffc107' : '#dc3545' }}></div>
+                  </div>
+                  <span>{results.benefitsScore}%</span>
+                  <div style={styles.pillarFlipHint}>Click to see details</div>
+                </div>
+                {/* Back of tile */}
+                <div style={styles.pillarTileBack}>
+                  {(() => {
+                    const explanation = getPillarExplanation('benefits', results)
+                    return explanation ? (
+                      <>
+                        <div style={styles.pillarExplanationTitle}>{explanation.title}</div>
+                        <div style={styles.pillarCalculation}>{explanation.calculation}</div>
+                        <ul style={styles.pillarBreakdownList}>
+                          {explanation.breakdown.map((item, idx) => (
+                            <li key={idx} style={styles.pillarBreakdownItem}>{item}</li>
+                          ))}
+                        </ul>
+                        <div style={styles.pillarExplanationText}>{explanation.explanation}</div>
+                      </>
+                    ) : null
+                  })()}
+                </div>
               </div>
-              <span>{results.benefitsScore}%</span>
             </div>
-            <div style={styles.pillarScore}>
-              <strong>💳 Debt Management (B)</strong>
-              <div style={styles.scoreBar}>
-                <div style={{ ...styles.scoreFill, width: `${results.debtScore}%`, backgroundColor: results.debtScore >= 70 ? '#28a745' : results.debtScore >= 40 ? '#ffc107' : '#dc3545' }}></div>
+
+            {/* Debt Management Pillar */}
+            <div style={styles.pillarTileContainer}>
+              <div 
+                style={{
+                  ...styles.pillarTile,
+                  ...(flippedPillarTiles.debt ? styles.pillarTileFlipped : {})
+                }}
+                onClick={() => togglePillarTile('debt')}
+              >
+                {/* Front of tile */}
+                <div style={styles.pillarTileFront}>
+                  <strong>💳 Debt Management (B)</strong>
+                  <div style={styles.scoreBar}>
+                    <div style={{ ...styles.scoreFill, width: `${results.debtScore}%`, backgroundColor: results.debtScore >= 70 ? '#28a745' : results.debtScore >= 40 ? '#ffc107' : '#dc3545' }}></div>
+                  </div>
+                  <span>{results.debtScore}%</span>
+                  <div style={styles.pillarFlipHint}>Click to see details</div>
+                </div>
+                {/* Back of tile */}
+                <div style={styles.pillarTileBack}>
+                  {(() => {
+                    const explanation = getPillarExplanation('debt', results)
+                    return explanation ? (
+                      <>
+                        <div style={styles.pillarExplanationTitle}>{explanation.title}</div>
+                        <div style={styles.pillarCalculation}>{explanation.calculation}</div>
+                        <ul style={styles.pillarBreakdownList}>
+                          {explanation.breakdown.map((item, idx) => (
+                            <li key={idx} style={styles.pillarBreakdownItem}>{item}</li>
+                          ))}
+                        </ul>
+                        <div style={styles.pillarExplanationText}>{explanation.explanation}</div>
+                      </>
+                    ) : null
+                  })()}
+                </div>
               </div>
-              <span>{results.debtScore}%</span>
             </div>
-            <div style={styles.pillarScore}>
-              <strong>🏛️ Tax Planning (C)</strong>
-              <div style={styles.scoreBar}>
-                <div style={{ ...styles.scoreFill, width: `${results.taxScore}%`, backgroundColor: results.taxScore >= 70 ? '#28a745' : results.taxScore >= 40 ? '#ffc107' : '#dc3545' }}></div>
+
+            {/* Tax Planning Pillar */}
+            <div style={styles.pillarTileContainer}>
+              <div 
+                style={{
+                  ...styles.pillarTile,
+                  ...(flippedPillarTiles.tax ? styles.pillarTileFlipped : {})
+                }}
+                onClick={() => togglePillarTile('tax')}
+              >
+                {/* Front of tile */}
+                <div style={styles.pillarTileFront}>
+                  <strong>🏛️ Tax Planning (C)</strong>
+                  <div style={styles.scoreBar}>
+                    <div style={{ ...styles.scoreFill, width: `${results.taxScore}%`, backgroundColor: results.taxScore >= 70 ? '#28a745' : results.taxScore >= 40 ? '#ffc107' : '#dc3545' }}></div>
+                  </div>
+                  <span>{results.taxScore}%</span>
+                  <div style={styles.pillarFlipHint}>Click to see details</div>
+                </div>
+                {/* Back of tile */}
+                <div style={styles.pillarTileBack}>
+                  {(() => {
+                    const explanation = getPillarExplanation('tax', results)
+                    return explanation ? (
+                      <>
+                        <div style={styles.pillarExplanationTitle}>{explanation.title}</div>
+                        <div style={styles.pillarCalculation}>{explanation.calculation}</div>
+                        <ul style={styles.pillarBreakdownList}>
+                          {explanation.breakdown.map((item, idx) => (
+                            <li key={idx} style={styles.pillarBreakdownItem}>{item}</li>
+                          ))}
+                        </ul>
+                        <div style={styles.pillarExplanationText}>{explanation.explanation}</div>
+                      </>
+                    ) : null
+                  })()}
+                </div>
               </div>
-              <span>{results.taxScore}%</span>
             </div>
-            <div style={styles.pillarScore}>
-              <strong>🏠 Emergency Fund</strong>
-              <div style={styles.scoreBar}>
-                <div style={{ ...styles.scoreFill, width: `${results.emergencyScore}%`, backgroundColor: results.emergencyScore >= 70 ? '#28a745' : results.emergencyScore >= 40 ? '#ffc107' : '#dc3545' }}></div>
+
+            {/* Emergency Fund Pillar */}
+            <div style={styles.pillarTileContainer}>
+              <div 
+                style={{
+                  ...styles.pillarTile,
+                  ...(flippedPillarTiles.emergency ? styles.pillarTileFlipped : {})
+                }}
+                onClick={() => togglePillarTile('emergency')}
+              >
+                {/* Front of tile */}
+                <div style={styles.pillarTileFront}>
+                  <strong>🏠 Emergency Fund</strong>
+                  <div style={styles.scoreBar}>
+                    <div style={{ ...styles.scoreFill, width: `${results.emergencyScore}%`, backgroundColor: results.emergencyScore >= 70 ? '#28a745' : results.emergencyScore >= 40 ? '#ffc107' : '#dc3545' }}></div>
+                  </div>
+                  <span>{results.emergencyScore}%</span>
+                  <div style={styles.pillarFlipHint}>Click to see details</div>
+                </div>
+                {/* Back of tile */}
+                <div style={styles.pillarTileBack}>
+                  {(() => {
+                    const explanation = getPillarExplanation('emergency', results)
+                    return explanation ? (
+                      <>
+                        <div style={styles.pillarExplanationTitle}>{explanation.title}</div>
+                        <div style={styles.pillarCalculation}>{explanation.calculation}</div>
+                        <ul style={styles.pillarBreakdownList}>
+                          {explanation.breakdown.map((item, idx) => (
+                            <li key={idx} style={styles.pillarBreakdownItem}>{item}</li>
+                          ))}
+                        </ul>
+                        <div style={styles.pillarExplanationText}>{explanation.explanation}</div>
+                      </>
+                    ) : null
+                  })()}
+                </div>
               </div>
-              <span>{results.emergencyScore}%</span>
             </div>
-            <div style={styles.pillarScore}>
-              <strong>📋 Legal Planning</strong>
-              <div style={styles.scoreBar}>
-                <div style={{ ...styles.scoreFill, width: `${results.legalScore}%`, backgroundColor: results.legalScore >= 70 ? '#28a745' : results.legalScore >= 40 ? '#ffc107' : '#dc3545' }}></div>
+
+            {/* Legal Planning Pillar */}
+            <div style={styles.pillarTileContainer}>
+              <div 
+                style={{
+                  ...styles.pillarTile,
+                  ...(flippedPillarTiles.legal ? styles.pillarTileFlipped : {})
+                }}
+                onClick={() => togglePillarTile('legal')}
+              >
+                {/* Front of tile */}
+                <div style={styles.pillarTileFront}>
+                  <strong>📋 Legal Planning</strong>
+                  <div style={styles.scoreBar}>
+                    <div style={{ ...styles.scoreFill, width: `${results.legalScore}%`, backgroundColor: results.legalScore >= 70 ? '#28a745' : results.legalScore >= 40 ? '#ffc107' : '#dc3545' }}></div>
+                  </div>
+                  <span>{results.legalScore}%</span>
+                  <div style={styles.pillarFlipHint}>Click to see details</div>
+                </div>
+                {/* Back of tile */}
+                <div style={styles.pillarTileBack}>
+                  {(() => {
+                    const explanation = getPillarExplanation('legal', results)
+                    return explanation ? (
+                      <>
+                        <div style={styles.pillarExplanationTitle}>{explanation.title}</div>
+                        <div style={styles.pillarCalculation}>{explanation.calculation}</div>
+                        <ul style={styles.pillarBreakdownList}>
+                          {explanation.breakdown.map((item, idx) => (
+                            <li key={idx} style={styles.pillarBreakdownItem}>{item}</li>
+                          ))}
+                        </ul>
+                        <div style={styles.pillarExplanationText}>{explanation.explanation}</div>
+                      </>
+                    ) : null
+                  })()}
+                </div>
               </div>
-              <span>{results.legalScore}%</span>
             </div>
           </div>
         </div>
@@ -2035,45 +2947,195 @@ Generated on: ${new Date().toLocaleDateString()}
         {/* Detailed Financial Summary */}
         <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', margin: '20px 0' }}>
           <h3>Detailed Financial Protection Summary:</h3>
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '15px',
+            padding: '10px',
+            backgroundColor: '#e7f3ff',
+            borderRadius: '6px',
+            border: '1px solid #007bff20'
+          }}>
+            <div style={{ fontSize: '14px', color: '#007bff', fontWeight: 'bold' }}>
+              💡 Click any section below to expand and see detailed calculations
+            </div>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
             
             {/* Benefits Breakdown */}
-            <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '6px' }}>
-              <h4 style={{ color: '#007bff', margin: '0 0 10px 0' }}>💰 Benefits (A) - ${results.currentProtection.toLocaleString()}</h4>
-              <p style={{ margin: '5px 0', fontSize: '14px' }}>Life Insurance: ${results.lifeInsuranceTotal.toLocaleString()}</p>
-              <p style={{ margin: '5px 0', fontSize: '14px' }}>Retirement Accounts: ${results.retirementAccountsTotal.toLocaleString()}</p>
-              <p style={{ margin: '5px 0', fontSize: '14px' }}>Savings & Investments: ${(results.currentProtection - results.lifeInsuranceTotal - results.retirementAccountsTotal).toLocaleString()}</p>
+            <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', border: '1px solid #dee2e6' }}>
+              <div 
+                style={{ 
+                  padding: '15px', 
+                  cursor: 'pointer',
+                  borderBottom: flippedAnalysisTiles.benefits ? '1px solid #dee2e6' : 'none',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onClick={() => toggleAnalysisTile('benefits')}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+              >
+                <h4 style={{ color: '#007bff', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  💰 Benefits (A) - ${results.currentProtection.toLocaleString()}
+                  <span style={{ fontSize: '14px', fontWeight: 'normal' }}>
+                    {flippedAnalysisTiles.benefits ? '▼' : '▶'}
+                  </span>
+                </h4>
+                <p style={{ margin: '5px 0', fontSize: '14px' }}>Life Insurance: ${results.lifeInsuranceTotal.toLocaleString()}</p>
+                <p style={{ margin: '5px 0', fontSize: '14px' }}>Retirement Accounts: ${results.retirementAccountsTotal.toLocaleString()}</p>
+                <p style={{ margin: '5px 0', fontSize: '14px' }}>Savings & Investments: ${(results.currentProtection - results.lifeInsuranceTotal - results.retirementAccountsTotal).toLocaleString()}</p>
+              </div>
+              {flippedAnalysisTiles.benefits && (
+                <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderTop: '1px solid #dee2e6' }}>
+                  <h5 style={{ margin: '0 0 10px 0', color: '#333' }}>Detailed Breakdown:</h5>
+                  <div style={{ fontSize: '13px', color: '#666' }}>
+                    <p style={{ margin: '3px 0' }}>• Term Life Insurance: ${(parseFloat(formData.termLifeInsurance) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Whole Life Insurance: ${(parseFloat(formData.wholeLifeInsurance) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Group Life Insurance: ${(parseFloat(formData.groupLifeInsurance) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Traditional 401(k): ${(parseFloat(formData.traditional401k) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Roth 401(k): ${(parseFloat(formData.roth401k) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Traditional IRA: ${(parseFloat(formData.traditionalIRA) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Roth IRA: ${(parseFloat(formData.rothIRA) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Savings Accounts: ${(parseFloat(formData.savingsAccounts) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Investment Accounts: ${(parseFloat(formData.investmentAccounts) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Real Estate Value: ${(parseFloat(formData.homeValue) || 0).toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Debts Breakdown */}
-            <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '6px' }}>
-              <h4 style={{ color: '#dc3545', margin: '0 0 10px 0' }}>💳 Debts (B) - ${results.totalDebts.toLocaleString()}</h4>
-              <p style={{ margin: '5px 0', fontSize: '14px' }}>Mortgage & Home Equity: ${((parseFloat(formData.primaryMortgage) || 0) + (parseFloat(formData.homeEquityLoans) || 0)).toLocaleString()}</p>
-              <p style={{ margin: '5px 0', fontSize: '14px' }}>Credit Cards: ${(parseFloat(formData.creditCardDebt) || 0).toLocaleString()}</p>
-              <p style={{ margin: '5px 0', fontSize: '14px' }}>Student & Auto Loans: ${((parseFloat(formData.federalStudentLoans) || 0) + (parseFloat(formData.privateStudentLoans) || 0) + (parseFloat(formData.autoLoans) || 0)).toLocaleString()}</p>
+            <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', border: '1px solid #dee2e6' }}>
+              <div 
+                style={{ 
+                  padding: '15px', 
+                  cursor: 'pointer',
+                  borderBottom: flippedAnalysisTiles.debts ? '1px solid #dee2e6' : 'none',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onClick={() => toggleAnalysisTile('debts')}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+              >
+                <h4 style={{ color: '#dc3545', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  💳 Debts (B) - ${results.totalDebts.toLocaleString()}
+                  <span style={{ fontSize: '14px', fontWeight: 'normal' }}>
+                    {flippedAnalysisTiles.debts ? '▼' : '▶'}
+                  </span>
+                </h4>
+                <p style={{ margin: '5px 0', fontSize: '14px' }}>Mortgage & Home Equity: ${((parseFloat(formData.primaryMortgage) || 0) + (parseFloat(formData.homeEquityLoans) || 0)).toLocaleString()}</p>
+                <p style={{ margin: '5px 0', fontSize: '14px' }}>Credit Cards: ${(parseFloat(formData.creditCardDebt) || 0).toLocaleString()}</p>
+                <p style={{ margin: '5px 0', fontSize: '14px' }}>Student & Auto Loans: ${((parseFloat(formData.federalStudentLoans) || 0) + (parseFloat(formData.privateStudentLoans) || 0) + (parseFloat(formData.autoLoans) || 0) + (parseFloat(formData.personalLoans) || 0)).toLocaleString()}</p>
+              </div>
+              {flippedAnalysisTiles.debts && (
+                <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderTop: '1px solid #dee2e6' }}>
+                  <h5 style={{ margin: '0 0 10px 0', color: '#333' }}>Detailed Breakdown:</h5>
+                  <div style={{ fontSize: '13px', color: '#666' }}>
+                    <p style={{ margin: '3px 0' }}>• Primary Mortgage: ${(parseFloat(formData.primaryMortgage) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Home Equity Loans: ${(parseFloat(formData.homeEquityLoans) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Credit Card Debt: ${(parseFloat(formData.creditCardDebt) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Federal Student Loans: ${(parseFloat(formData.federalStudentLoans) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Private Student Loans: ${(parseFloat(formData.privateStudentLoans) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Auto Loans: ${(parseFloat(formData.autoLoans) || 0).toLocaleString()}</p>
+                    <p style={{ margin: '3px 0' }}>• Personal Loans: ${(parseFloat(formData.personalLoans) || 0).toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Monthly Expenses Breakdown */}
-            <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '6px' }}>
-              <h4 style={{ color: '#28a745', margin: '0 0 10px 0' }}>🏠 Monthly Expenses (D) - ${results.monthlyExpensesTotal.toLocaleString()}</h4>
-              <p style={{ margin: '5px 0', fontSize: '14px' }}>Housing: ${(parseFloat(formData.housingCosts) || 0).toLocaleString()}</p>
-              <p style={{ margin: '5px 0', fontSize: '14px' }}>Food & Transportation: ${((parseFloat(formData.foodExpenses) || 0) + (parseFloat(formData.transportationCosts) || 0)).toLocaleString()}</p>
-              <p style={{ margin: '5px 0', fontSize: '14px' }}>Healthcare & Childcare: ${((parseFloat(formData.healthcareCosts) || 0) + (parseFloat(formData.childcareEducation) || 0)).toLocaleString()}</p>
+            <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', border: '1px solid #dee2e6' }}>
+              <div 
+                style={{ 
+                  padding: '15px', 
+                  cursor: 'pointer',
+                  borderBottom: flippedAnalysisTiles.expenses ? '1px solid #dee2e6' : 'none',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onClick={() => toggleAnalysisTile('expenses')}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+              >
+                <h4 style={{ color: '#28a745', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  🏠 Monthly Expenses (D) - ${results.monthlyExpensesTotal.toLocaleString()}
+                  <span style={{ fontSize: '14px', fontWeight: 'normal' }}>
+                    {flippedAnalysisTiles.expenses ? '▼' : '▶'}
+                  </span>
+                </h4>
+                <p style={{ margin: '5px 0', fontSize: '14px' }}>Housing: ${(parseFloat(formData.housingCosts) || 0).toLocaleString()}</p>
+                <p style={{ margin: '5px 0', fontSize: '14px' }}>Food & Transportation: ${((parseFloat(formData.foodExpenses) || 0) + (parseFloat(formData.transportationCosts) || 0)).toLocaleString()}</p>
+                <p style={{ margin: '5px 0', fontSize: '14px' }}>Healthcare & Childcare: ${((parseFloat(formData.healthcareCosts) || 0) + (parseFloat(formData.childcareEducation) || 0)).toLocaleString()}</p>
+              </div>
+              {flippedAnalysisTiles.expenses && (
+                <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderTop: '1px solid #dee2e6' }}>
+                  <h5 style={{ margin: '0 0 10px 0', color: '#333' }}>Detailed Breakdown:</h5>
+                  <div style={{ fontSize: '13px', color: '#666' }}>
+                    <p style={{ margin: '3px 0' }}>• Housing Costs: ${(parseFloat(formData.housingCosts) || 0).toLocaleString()}/month</p>
+                    <p style={{ margin: '3px 0' }}>• Food Expenses: ${(parseFloat(formData.foodExpenses) || 0).toLocaleString()}/month</p>
+                    <p style={{ margin: '3px 0' }}>• Transportation: ${(parseFloat(formData.transportationCosts) || 0).toLocaleString()}/month</p>
+                    <p style={{ margin: '3px 0' }}>• Healthcare Costs: ${(parseFloat(formData.healthcareCosts) || 0).toLocaleString()}/month</p>
+                    <p style={{ margin: '3px 0' }}>• Childcare/Education: ${(parseFloat(formData.childcareEducation) || 0).toLocaleString()}/month</p>
+                  </div>
+                  <div style={{ marginTop: '10px', padding: '8px', backgroundColor: 'white', borderRadius: '4px', border: '1px solid #dee2e6' }}>
+                    <strong>Emergency Fund Target:</strong> ${(results.monthlyExpensesTotal * 6).toLocaleString()} (6 months of expenses)
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Protection Summary */}
-            <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '6px' }}>
-              <h4 style={{ color: '#6f42c1', margin: '0 0 10px 0' }}>🛡️ Protection Analysis</h4>
-              <p style={{ margin: '5px 0', fontSize: '14px' }}>Total Protection Needed: ${results.totalProtectionNeeded.toLocaleString()}</p>
-              <p style={{ margin: '5px 0', fontSize: '14px' }}>Current Protection: ${results.currentProtection.toLocaleString()}</p>
-              {results.protectionGap > 0 ? (
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#dc3545', fontWeight: 'bold' }}>
-                  Protection Gap: ${results.protectionGap.toLocaleString()}
-                </p>
-              ) : (
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#28a745', fontWeight: 'bold' }}>
-                  ✅ Fully Protected!
-                </p>
+            <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', border: '1px solid #dee2e6' }}>
+              <div 
+                style={{ 
+                  padding: '15px', 
+                  cursor: 'pointer',
+                  borderBottom: flippedAnalysisTiles.protection ? '1px solid #dee2e6' : 'none',
+                  transition: 'background-color 0.2s ease',
+                  backgroundColor: 'white'
+                }}
+                onClick={() => toggleAnalysisTile('protection')}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+              >
+                <h4 style={{ color: '#6f42c1', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  🛡️ Protection Analysis
+                  <span style={{ fontSize: '14px', fontWeight: 'normal' }}>
+                    {flippedAnalysisTiles.protection ? '▼' : '▶'}
+                  </span>
+                </h4>
+                <p style={{ margin: '5px 0', fontSize: '14px' }}>Total Protection Needed: ${results.totalProtectionNeeded.toLocaleString()}</p>
+                <p style={{ margin: '5px 0', fontSize: '14px' }}>Current Protection: ${results.currentProtection.toLocaleString()}</p>
+                {results.protectionGap > 0 ? (
+                  <p style={{ margin: '5px 0', fontSize: '14px', color: '#dc3545', fontWeight: 'bold' }}>
+                    Protection Gap: ${results.protectionGap.toLocaleString()}
+                  </p>
+                ) : (
+                  <p style={{ margin: '5px 0', fontSize: '14px', color: '#28a745', fontWeight: 'bold' }}>
+                    ✅ Fully Protected!
+                  </p>
+                )}
+              </div>
+              {flippedAnalysisTiles.protection && (
+                <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderTop: '1px solid #dee2e6' }}>
+                  {(() => {
+                    const details = getCalculationDetails('protection', results)
+                    return (
+                      <>
+                        <h5 style={{ margin: '0 0 10px 0', color: '#333' }}>{details.title}:</h5>
+                        <div style={{ fontSize: '13px', color: '#666' }}>
+                          {details.items.map((item, idx) => (
+                            <p key={idx} style={{ margin: '3px 0', display: 'flex', justifyContent: 'space-between' }}>
+                              <span>{item.label}:</span>
+                              <span style={{ fontWeight: 'bold' }}>{item.value}</span>
+                            </p>
+                          ))}
+                        </div>
+                        <div style={{ marginTop: '10px', padding: '8px', backgroundColor: 'white', borderRadius: '4px', border: '1px solid #dee2e6' }}>
+                          <strong>Formula:</strong> A (Benefits) - B (Debts) - C (Taxes) ≥ D (Monthly Expenses) × Years
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
               )}
             </div>
 
@@ -2088,8 +3150,8 @@ Generated on: ${new Date().toLocaleDateString()}
         ))}
 
         <div style={{ marginTop: '40px', textAlign: 'center' }}>
-          <button style={styles.button} onClick={saveResults}>
-            Save Results
+          <button style={styles.button} onClick={printResults}>
+            📄 Export to PDF
           </button>
           <button style={styles.secondaryButton} onClick={startOver}>
             Start Over

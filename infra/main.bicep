@@ -7,15 +7,7 @@ param staticWebAppName string = 'family-financial-shield-${uniqueString(subscrip
 @description('The location for the Static Web App')
 param location string = resourceGroup().location
 
-@description('The SKU for the Static Web App (Free tier for cost optimization)')
-@allowed(['Free', 'Standard'])
 param sku string = 'Free'
-
-@description('The GitHub repository URL')
-param repositoryUrl string = ''
-
-@description('The GitHub branch to deploy from')
-param branch string = 'main'
 
 @description('Environment name for tagging')
 param environmentName string = 'dev'
@@ -37,6 +29,7 @@ resource staticWebApp 'Microsoft.Web/staticSites@2023-01-01' = {
   location: location
   tags: {
     'azd-env-name': environmentName
+    'azd-service-name': 'web'
     environment: environmentName
     project: 'family-financial-shield'
     'cost-center': 'development'
@@ -46,8 +39,6 @@ resource staticWebApp 'Microsoft.Web/staticSites@2023-01-01' = {
     tier: sku
   }
   properties: {
-    repositoryUrl: repositoryUrl
-    branch: branch
     buildProperties: {
       appLocation: '/'
       apiLocation: ''
