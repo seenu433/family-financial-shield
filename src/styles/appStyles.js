@@ -151,7 +151,7 @@ export const getStyles = (currentStep) => ({
     },
     pillarsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+      gridTemplateColumns: 'repeat(3, 1fr)', // 3 columns for desktop (2 rows of 3 tiles)
       gap: '20px',
       marginBottom: '30px'
     },
