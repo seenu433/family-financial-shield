@@ -127,6 +127,45 @@ export const questions = [
       helpText: 'Tax-advantaged savings for qualified education expenses'
     },
 
+    // BENEFITS PILLAR (A) - Social Security Benefits Instrument
+    {
+      id: 'socialSecurityEligible',
+      question: 'Are you eligible for Social Security survivor benefits?',
+      type: 'select',
+      options: [
+        { value: 'yes', label: 'Yes, I have work credits' },
+        { value: 'spouse', label: 'Yes, through spouse\'s work record' },
+        { value: 'no', label: 'No, insufficient work credits' },
+        { value: 'unsure', label: 'Unsure about eligibility' }
+      ],
+      pillar: 'benefits',
+      instrument: 'Social Security Benefits',
+      nationalAverage: 'US Statistic: 96% of workers aged 20-49 are covered by Social Security',
+      helpText: 'You need 40 work credits (about 10 years) for survivor benefits eligibility'
+    },
+    {
+      id: 'estimatedSocialSecurityBenefit',
+      question: 'What is your estimated monthly Social Security survivor benefit for your family?',
+      placeholder: '2800',
+      type: 'number',
+      label: '$',
+      pillar: 'benefits',
+      instrument: 'Social Security Benefits',
+      nationalAverage: 'US Average: $2,830/month for family maximum (varies by earnings history)',
+      helpText: 'Estimate from SSA.gov or use 75% of your projected retirement benefit'
+    },
+    {
+      id: 'socialSecurityYearsOfCoverage',
+      question: 'For how many years would your family receive Social Security survivor benefits?',
+      placeholder: '16',
+      type: 'number',
+      label: 'years',
+      pillar: 'benefits',
+      instrument: 'Social Security Benefits',
+      nationalAverage: 'US Average: Until youngest child turns 18 (or 19 if in high school)',
+      helpText: 'Benefits continue until youngest child is no longer eligible (age 18-19)'
+    },
+
     // BENEFITS PILLAR (A) - Real Estate Instrument
     {
       id: 'homeValue',
@@ -138,19 +177,6 @@ export const questions = [
       instrument: 'Real Estate',
       nationalAverage: 'US Average: $428,700 (65% of Americans own homes)',
       helpText: 'Current market value of your primary residence'
-    },
-
-    // BENEFITS PILLAR (A) - Social Security Survivor Benefits Instrument
-    {
-      id: 'annualIncome',
-      question: 'What is your annual household income?',
-      placeholder: '75000',
-      type: 'number',
-      label: '$',
-      pillar: 'benefits',
-      instrument: 'Social Security Survivor Benefits',
-      nationalAverage: 'US Average: $70,784 (median household income)',
-      helpText: 'Combined gross income from all household earners before taxes'
     },
 
     // DEBTS PILLAR (B) - Mortgage Debt Instrument
@@ -358,6 +384,19 @@ export const questions = [
       instrument: 'Document Preparation',
       nationalAverage: 'US Statistic: 37% of Americans have healthcare directives',
       helpText: 'Legal documents for medical decisions if you become incapacitated'
+    },
+
+    // GENERAL PLANNING DATA - Income & Family Info Instrument
+    {
+      id: 'annualIncome',
+      question: 'What is your annual household income?',
+      placeholder: '75000',
+      type: 'number',
+      label: '$',
+      pillar: 'general',
+      instrument: 'Income & Family Info',
+      nationalAverage: 'US Average: $70,784 (median household income)',
+      helpText: 'Combined gross income from all household earners before taxes'
     },
 
     // GENERAL PLANNING DATA - Family Planning Instrument

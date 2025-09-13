@@ -1,48 +1,76 @@
 export const calculateFinancialNeeds = (formData) => {
-  const lifeInsuranceTotal = (
-    parseFloat(formData.termLifeInsurance) || 0) +
-    (parseFloat(formData.wholeLifeInsurance) || 0) +
-    (parseFloat(formData.groupLifeInsurance) || 0
-  )
+  // Helper function to use simple values if available, otherwise sum detailed values
+  const getValueOrSum = (simpleFieldId, detailedFieldIds) => {
+    const simpleValue = parseFloat(formData[simpleFieldId]) || 0
+    if (simpleValue > 0) {
+      return simpleValue
+    }
+    // If no simple value, sum the detailed values
+    return detailedFieldIds.reduce((sum, fieldId) => {
+      return sum + (parseFloat(formData[fieldId]) || 0)
+    }, 0)
+  }
+
+  // Life Insurance: Use simple total if available, otherwise sum detailed
+  const lifeInsuranceTotal = getValueOrSum('totalLifeInsurance', [
+    'termLifeInsurance', 'wholeLifeInsurance', 'groupLifeInsurance'
+  ])
   
-  const retirementAccountsTotal = (
-    parseFloat(formData.traditional401k) || 0) +
-    (parseFloat(formData.roth401k) || 0) +
-    (parseFloat(formData.traditionalIRA) || 0) +
-    (parseFloat(formData.rothIRA) || 0
-  )
+  // Retirement Accounts: Use simple total if available, otherwise sum detailed
+  const retirementAccountsTotal = getValueOrSum('totalRetirementAccounts', [
+    'traditional401k', 'roth401k', 'traditionalIRA', 'rothIRA'
+  ])
   
-  const savingsInvestmentsTotal = (
-    parseFloat(formData.savingsAccounts) || 0) +
-    (parseFloat(formData.investmentAccounts) || 0) +
-    (parseFloat(formData.hsaAccounts) || 0) +
-    (parseFloat(formData.educationSavings529) || 0
-  )
+  // Savings & Investments: Use simple total if available, otherwise sum detailed
+  const savingsInvestmentsTotal = getValueOrSum('totalSavingsInvestments', [
+    'savingsAccounts', 'investmentAccounts', 'hsaAccounts', 'educationSavings529'
+  ])
   
-  const realEstateValue = parseFloat(formData.homeValue) || 0
+  // Real Estate: Use simple total if available, otherwise use detailed
+  const realEstateValue = getValueOrSum('totalRealEstate', ['homeValue'])
+
+  // Social Security Benefits: Calculate present value of survivor benefits
+  const socialSecurityEligible = formData.socialSecurityEligible || 'no'
+  const monthlySSBenefit = parseFloat(formData.estimatedSocialSecurityBenefit) || 0
+  const ssYearsOfCoverage = parseFloat(formData.socialSecurityYearsOfCoverage) || 0
+  
+  // Calculate present value of Social Security survivor benefits
+  // Only include if eligible and have valid benefit amounts
+  let socialSecurityPresentValue = 0
+  if (socialSecurityEligible === 'yes' || socialSecurityEligible === 'spouse') {
+    // Simple present value calculation: monthly benefit × 12 months × years of coverage
+    // Using conservative approach without discount rate for simplicity
+    socialSecurityPresentValue = monthlySSBenefit * 12 * ssYearsOfCoverage
+  }
+  
   const annualIncome = parseFloat(formData.annualIncome) || 0
   
-  const totalBenefits = lifeInsuranceTotal + retirementAccountsTotal + savingsInvestmentsTotal + realEstateValue
+  const totalBenefits = lifeInsuranceTotal + retirementAccountsTotal + savingsInvestmentsTotal + realEstateValue + socialSecurityPresentValue
   
-  const mortgageDebtTotal = (
-    parseFloat(formData.primaryMortgage) || 0) +
-    (parseFloat(formData.homeEquityLoans) || 0
-  )
+  // Mortgage Debt: Use simple total if available, otherwise sum detailed
+  const mortgageDebtTotal = getValueOrSum('totalMortgageDebt', [
+    'primaryMortgage', 'homeEquityLoans'
+  ])
   
-  const creditCardDebt = parseFloat(formData.creditCardDebt) || 0
+  // Credit Card Debt: Use simple total if available, otherwise use detailed
+  const creditCardDebt = getValueOrSum('totalCreditCardDebt', ['creditCardDebt'])
   
-  const studentLoansTotal = (
-    parseFloat(formData.federalStudentLoans) || 0) +
-    (parseFloat(formData.privateStudentLoans) || 0
-  )
+  // Student Loans: Use simple total if available, otherwise sum detailed
+  const studentLoansTotal = getValueOrSum('totalStudentLoans', [
+    'federalStudentLoans', 'privateStudentLoans'
+  ])
   
-  const autoLoans = parseFloat(formData.autoLoans) || 0
-  const personalLoans = parseFloat(formData.personalLoans) || 0
-  const businessDebts = parseFloat(formData.businessDebts) || 0
-  const medicalDebt = parseFloat(formData.medicalDebt) || 0
+  // Auto Loans: Use simple total if available, otherwise use detailed
+  const autoLoans = getValueOrSum('totalAutoLoans', ['autoLoans'])
   
-  const totalDebts = mortgageDebtTotal + creditCardDebt + studentLoansTotal + autoLoans + personalLoans + businessDebts + medicalDebt
+  // Other Debt: Use simple total if available, otherwise sum detailed
+  const otherDebtTotal = getValueOrSum('totalOtherDebt', [
+    'personalLoans', 'businessDebts', 'medicalDebt'
+  ])
+  
+  const totalDebts = mortgageDebtTotal + creditCardDebt + studentLoansTotal + autoLoans + otherDebtTotal
 
+  // Tax implications: Calculate based on traditional accounts (simplified approach)
   const traditionalAccountTaxImpact = (
     (parseFloat(formData.traditional401k) || 0) +
     (parseFloat(formData.traditionalIRA) || 0)
@@ -51,13 +79,14 @@ export const calculateFinancialNeeds = (formData) => {
   const realEstateTaxImpact = realEstateValue * 0.06
   const taxImplications = traditionalAccountTaxImpact + realEstateTaxImpact
   
-  const monthlyExpensesTotal = (
-    parseFloat(formData.housingCosts) || 0) +
-    (parseFloat(formData.foodExpenses) || 0) +
-    (parseFloat(formData.transportationCosts) || 0) +
-    (parseFloat(formData.healthcareCosts) || 0) +
-    (parseFloat(formData.childcareEducation) || 0
-  )
+  // Monthly Expenses: Use simple totals if available, otherwise sum detailed
+  const housingCosts = getValueOrSum('totalHousingCosts', ['housingCosts'])
+  const foodCosts = getValueOrSum('totalFoodCosts', ['foodExpenses'])
+  const transportationCosts = getValueOrSum('totalTransportationCosts', ['transportationCosts'])
+  const healthcareCosts = getValueOrSum('totalHealthcareCosts', ['healthcareCosts'])
+  const monthlyEducationCosts = getValueOrSum('totalEducationCosts', ['childcareEducation'])
+  
+  const monthlyExpensesTotal = housingCosts + foodCosts + transportationCosts + healthcareCosts + monthlyEducationCosts
   
   // PLANNING VARIABLES
   const dependents = parseFloat(formData.dependents) || 0
@@ -82,7 +111,10 @@ export const calculateFinancialNeeds = (formData) => {
   
   // Emergency fund calculation (6 months of expenses)
   const targetEmergencyFund = monthlyExpensesTotal * 6
-  const currentEmergencyFund = parseFloat(formData.savingsAccounts) || 0
+  // Use simple savings total if available, otherwise use detailed savings account value
+  const currentEmergencyFund = (parseFloat(formData.totalSavingsInvestments) || 0) > 0 
+    ? parseFloat(formData.totalSavingsInvestments) || 0
+    : parseFloat(formData.savingsAccounts) || 0
   const emergencyGap = Math.max(0, targetEmergencyFund - currentEmergencyFund)
   
   // DETAILED PILLAR SCORING WITH SAFEGUARDS

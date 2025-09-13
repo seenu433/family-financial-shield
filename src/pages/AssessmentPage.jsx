@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { 
   getInstruments,
   getCurrentInstrumentData,
@@ -6,6 +6,7 @@ import {
   getOverallCompletion
 } from '../utils/appUtils.js'
 import { questions } from '../data/questions.js'
+import { calculateFinancialNeeds } from '../utils/calculations.js'
 
 function AssessmentPage({
   styles,
@@ -20,13 +21,35 @@ function AssessmentPage({
   handleNext,
   isCurrentInstrumentComplete,
   setResults,
-  setCurrentStep,
-  calculateFinancialNeeds
+  setCurrentStep
 }) {
   const instruments = getInstruments(questions)
   const instrumentData = getCurrentInstrumentData(questions, currentInstrument)
   const overallProgress = getOverallCompletion(questions, formData)
   const instrumentCompletion = instrumentData ? getInstrumentCompletion(instrumentData.questions, formData) : 0
+
+  // Helper function to extract average values from national average strings
+  const extractNationalAverageValue = (avgString) => {
+    const matches = avgString.match(/\$?([\d,]+(?:\.\d{2})?)/g)
+    if (matches && matches.length > 0) {
+      return parseInt(matches[0].replace(/[$,]/g, ''))
+    }
+    return 0
+  }
+
+  // Use national averages for all questions in current instrument
+  const useAllNationalAveragesForCurrentInstrument = () => {
+    if (instrumentData) {
+      instrumentData.questions.forEach(question => {
+        if (question.nationalAverage) {
+          const value = extractNationalAverageValue(question.nationalAverage)
+          handleInputChange(question.id, value.toString())
+        }
+      })
+    }
+    // Advance to next section after filling values
+    handleNext()
+  }
 
   if (!instrumentData) {
     return <div>Loading...</div>
@@ -82,28 +105,8 @@ function AssessmentPage({
       <div style={styles.progress}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
           <p style={{ margin: 0 }}>Instrument {currentInstrument + 1} of {instruments.length}: {instrumentData.name}</p>
-          <button
-            onClick={useAllNationalAverages}
-            style={{
-              padding: '8px 16px',
-              fontSize: '14px',
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px'
-            }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#218838'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#28a745'}
-            title="Fill all fields with US national averages"
-          >
-            📊 Use All Averages
-          </button>
         </div>
+        
         <div style={styles.progressBar}>
           <div style={{ ...styles.progressFill, width: `${overallProgress}%` }}></div>
         </div>
@@ -113,16 +116,77 @@ function AssessmentPage({
       </div>
 
       {/* Pillar and Instrument Context */}
-      <div style={styles.questionContext}>
-        <span style={styles.pillarBadge}>
-          {instrumentData.pillar === 'benefits' && '💰 Benefits (A)'}
-          {instrumentData.pillar === 'debts' && '💳 Debts (B)'}
-          {instrumentData.pillar === 'taxes' && '🏛️ Taxes (C)'}
-          {instrumentData.pillar === 'expenses' && '🏠 Expenses (D)'}
-          {instrumentData.pillar === 'legal' && '📋 Legal Planning'}
-          {instrumentData.pillar === 'general' && '👨‍👩‍👧‍👦 Family Planning'}
-        </span>
-        <span style={styles.instrumentBadge}>{instrumentData.name}</span>
+      <div style={{...styles.questionContext, justifyContent: 'space-between'}}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <span style={styles.pillarBadge}>
+            {instrumentData.pillar === 'benefits' && '💰 Benefits (A)'}
+            {instrumentData.pillar === 'debts' && '💳 Debts (B)'}
+            {instrumentData.pillar === 'taxes' && '🏛️ Taxes (C)'}
+            {instrumentData.pillar === 'expenses' && '🏠 Expenses (D)'}
+            {instrumentData.pillar === 'legal' && '📋 Legal Planning'}
+            {instrumentData.pillar === 'general' && '👨‍👩‍👧‍👦 Family Planning'}
+          </span>
+          <span style={styles.instrumentBadge}>{instrumentData.name}</span>
+        </div>
+        
+        {/* Action buttons inline with pillar badges */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '8px', 
+          alignItems: 'center'
+        }}>
+          <button
+            onClick={useAllNationalAveragesForCurrentInstrument}
+            style={{
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              padding: '6px 12px',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s',
+              whiteSpace: 'nowrap'
+            }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#218838'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#28a745'}
+            title="Fill all fields with US national averages"
+          >
+            📊 Use Averages
+          </button>
+          <button
+            onClick={() => {
+              // Skip current instrument by setting all values to 0 or empty
+              instrumentData.questions.forEach(question => {
+                if (question.type === 'select') {
+                  handleInputChange(question.id, '')
+                } else {
+                  handleInputChange(question.id, '0')
+                }
+              })
+              // Automatically move to next section after skipping
+              setTimeout(() => {
+                handleNext()
+              }, 100) // Small delay to ensure state updates
+            }}
+            style={{
+              backgroundColor: '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              padding: '6px 12px',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s',
+              whiteSpace: 'nowrap'
+            }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#5a6268'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#6c757d'}
+            title="Skip this section and move to next - all values will be set to 0"
+          >
+            ⏭️ Skip Section
+          </button>
+        </div>
       </div>
 
       {/* Instrument Progress Visualization */}

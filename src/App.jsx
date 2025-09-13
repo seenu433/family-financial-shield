@@ -13,9 +13,12 @@ function App() {
   const {
     // State
     currentStep,
+    setCurrentStep,
     currentInstrument,
     formData,
+    setFormData,
     results,
+    setResults,
     flippedTiles,
     flippedAnalysisTiles,
     flippedPillarTiles,
@@ -72,7 +75,7 @@ function App() {
         styles={styles}
         currentInstrument={currentInstrument}
         formData={formData}
-        instruments={getInstruments}
+        results={results}
         handleInputChange={handleInputChange}
         useNationalAverage={useNationalAverage}
         useAllNationalAverages={useAllNationalAverages}
@@ -80,6 +83,8 @@ function App() {
         handleBack={handleBack}
         isCurrentInstrumentComplete={isCurrentInstrumentComplete}
         handleCancelAssessment={handleCancelAssessment}
+        setResults={setResults}
+        setCurrentStep={setCurrentStep}
       />
     )
   }

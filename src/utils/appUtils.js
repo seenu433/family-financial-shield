@@ -169,6 +169,12 @@ export const getTileData = (tileId, results, formData) => {
 export const getCalculationDetails = (tileId, results, formData) => {
   switch (tileId) {
     case 'benefits':
+      const socialSecurityEligible = formData.socialSecurityEligible || 'no'
+      const monthlySSBenefit = parseFloat(formData.estimatedSocialSecurityBenefit) || 0
+      const ssYearsOfCoverage = parseFloat(formData.socialSecurityYearsOfCoverage) || 0
+      const socialSecurityPresentValue = (socialSecurityEligible === 'yes' || socialSecurityEligible === 'spouse') 
+        ? monthlySSBenefit * 12 * ssYearsOfCoverage : 0
+
       return {
         title: 'Benefits Calculation (A)',
         items: [
@@ -184,6 +190,7 @@ export const getCalculationDetails = (tileId, results, formData) => {
           { label: 'Savings Accounts', value: `$${(parseFloat(formData.savingsAccounts) || 0).toLocaleString()}` },
           { label: 'Education Savings 529', value: `$${(parseFloat(formData.educationSavings529) || 0).toLocaleString()}` },
           { label: 'Real Estate Value', value: `$${(parseFloat(formData.homeValue) || 0).toLocaleString()}` },
+          { label: 'Social Security Benefits (PV)', value: `$${socialSecurityPresentValue.toLocaleString()}` },
           { label: 'TOTAL BENEFITS (A)', value: `$${results.currentProtection.toLocaleString()}` }
         ]
       }
